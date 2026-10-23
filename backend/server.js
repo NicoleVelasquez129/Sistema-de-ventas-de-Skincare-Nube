@@ -2,13 +2,20 @@ const express = require("express");
 const cors = require("cors");
 const sequelize = require("./config/database");
 require("dotenv").config();
+if (!process.env.JWT_SECRET) {
+    console.error("Falta JWT_SECRET en el archivo .env");
+    process.exit(1);
+}
+const helmet = require("helmet");
+const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middlewares transversales
+app.use(helmet());
+app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:5173" }));
 app.use(express.json());
-app.use(cors());
 
 // Importar Rutas REST
 const productRoutes = require("./routes/productRoutes");
@@ -34,13 +41,14 @@ app.get("/", (req, res) => {
             "POST /api/categorias": "Registra una nueva categoría de skincare",
             "GET /api/clientes": "Lista todos los clientes registrados",
             "POST /api/clientes": "Registra un nuevo cliente",
-            "GET /api/usuarios": "Lista todos los usuarios del sistema",
-            "POST /api/usuarios": "Registra un nuevo usuario"
+            "GET /api/usuarios": "Lista los usuarios del sistema (solo administrador)",
+            "POST /api/auth/login": "Inicia sesión y devuelve un token de acceso"
         }
     });
 });
 
 // Enrutar endpoints principales
+app.use("/api/auth", authRoutes);
 app.use("/api/productos", productRoutes);
 app.use("/api/ventas", saleRoutes);
 app.use("/api/categorias", categoryRoutes);

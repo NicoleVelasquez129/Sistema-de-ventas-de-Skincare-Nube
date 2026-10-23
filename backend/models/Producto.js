@@ -17,6 +17,15 @@ const Producto = sequelize.define("Producto", {
     descripcion: {
         type: DataTypes.TEXT
     },
+        descripcion: {
+        type: DataTypes.TEXT
+    },
+    // punto de imagen
+    imagen: {
+        type: DataTypes.STRING(500),
+        allowNull: true
+    },
+
     precio: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,

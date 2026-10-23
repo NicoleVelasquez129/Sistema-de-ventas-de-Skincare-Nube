@@ -8,7 +8,8 @@ const {
 
 const obtenerProductos = async (req, res) => {
     try {
-        const productos = await obtenerProductosService();
+        const incluirInactivos = req.query.todos === 'true';
+        const productos = await obtenerProductosService(incluirInactivos);
         return res.status(200).json({ success: true, total: productos.length, data: productos });
     } catch (error) {
         return res.status(500).json({ success: false, mensaje: "Error al obtener productos", error: error.message });

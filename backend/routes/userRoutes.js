@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const { obtenerUsuarios, registrarUsuario } = require("../controllers/userController");
+const { obtenerUsuarios } = require("../controllers/userController");
+const { verificarToken, soloAdmin } = require("../middlewares/auth");
 
-router.get("/", obtenerUsuarios);
-router.post("/", registrarUsuario);
+router.get("/", verificarToken, soloAdmin, obtenerUsuarios);
 
 module.exports = router;

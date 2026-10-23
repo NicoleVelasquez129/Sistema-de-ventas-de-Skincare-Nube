@@ -8,6 +8,8 @@ export interface Producto {
   id_producto: number;
   nombre: string;
   descripcion?: string;
+  id_categoria?: number;
+  imagen?: string;
   precio: number;
   stock: number;
   stock_minimo: number;

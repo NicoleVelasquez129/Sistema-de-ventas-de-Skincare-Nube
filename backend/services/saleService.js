@@ -7,31 +7,56 @@ const crearVentaService = async (datosVenta) => {
     const t = await sequelize.transaction();
 
     try {
-        if (!items || items.length === 0) {
+        if (!Array.isArray(items) || items.length === 0) {
             throw new Error("La venta debe incluir al menos un producto.");
         }
+
+        const idsProductos = items.map(i => Number(i.id_producto));
+        if (new Set(idsProductos).size !== idsProductos.length) {
+            throw new Error("Hay productos repetidos en la venta.");
+        }
+
+        if (id_cliente) {
+            const cliente = await Cliente.findByPk(id_cliente, { transaction: t });
+            if (!cliente) throw new Error("El cliente indicado no existe.");
+        }
+        
 
         let totalVenta = 0;
         const detallesCalculados = [];
 
         for (let item of items) {
-            const producto = await Producto.findByPk(item.id_producto, { transaction: t });
+            const idProducto = Number(item.id_producto);
+            const cantidad = Number(item.cantidad);
 
-            if (!producto) {
-                throw new Error(`Producto con ID ${item.id_producto} no encontrado.`);
+            if (!Number.isInteger(idProducto) || idProducto <= 0) {
+                throw new Error("ID de producto inválido.");
+            }
+            if (!Number.isInteger(cantidad) || cantidad <= 0) {
+                throw new Error("La cantidad debe ser un número entero mayor a 0.");
             }
 
-            if (producto.stock < item.cantidad) {
-                throw new Error(`Stock insuficiente para el producto '${producto.nombre}'. Stock actual: ${producto.stock}, solicitado: ${item.cantidad}.`);
+            const producto = await Producto.findByPk(idProducto, { transaction: t });
+
+            if (!producto) {
+                throw new Error(`Producto con ID ${idProducto} no encontrado.`);
+            }
+
+            if (!producto.activo) {
+                throw new Error(`El producto '${producto.nombre}' no está disponible.`);
+            }
+
+            if (producto.stock < cantidad) {
+                throw new Error(`Stock insuficiente para el producto '${producto.nombre}'. Stock actual: ${producto.stock}, solicitado: ${cantidad}.`);
             }
 
             const precio_unitario = producto.precio;
-            const subtotal = precio_unitario * item.cantidad;
+            const subtotal = precio_unitario * cantidad;
             totalVenta += subtotal;
 
             detallesCalculados.push({
                 producto,
-                cantidad: item.cantidad,
+                cantidad,
                 precio_unitario,
                 subtotal
             });
