@@ -12,12 +12,12 @@ Producto.belongsTo(Categoria, { foreignKey: "id_categoria" });
 Venta.belongsTo(Cliente, { foreignKey: "id_cliente" });
 Cliente.hasMany(Venta, { foreignKey: "id_cliente" });
 
-Venta.belongsTo(Usuario, { foreignKey: "id_usuario" });
-Usuario.hasMany(Venta, { foreignKey: "id_usuario" });
+Venta.belongsTo(Usuario, { foreignKey: "id_usuario", as: "usuario" });
+Usuario.hasMany(Venta, { foreignKey: "id_usuario", as: "ventas" });
 
 // Relación DetalleVenta -> Venta (Si se borra la venta, se borra su detalle en cascada)
-Venta.hasMany(DetalleVenta, { foreignKey: "id_venta", onDelete: "CASCADE" });
-DetalleVenta.belongsTo(Venta, { foreignKey: "id_venta" });
+Venta.hasMany(DetalleVenta, { foreignKey: "id_venta", onDelete: "CASCADE", as: "detalles" });
+DetalleVenta.belongsTo(Venta, { foreignKey: "id_venta", as: "venta" });
 
 // Relación DetalleVenta -> Producto
 Producto.hasMany(DetalleVenta, { foreignKey: "id_producto", onDelete: "CASCADE" });

@@ -25,6 +25,18 @@ const Producto = sequelize.define("Producto", {
         type: DataTypes.STRING(500),
         allowNull: true
     },
+    ingredientes: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    modo_uso: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    etiqueta: {
+        type: DataTypes.STRING(30),
+        allowNull: true
+    },
 
     precio: {
         type: DataTypes.DECIMAL(10, 2),

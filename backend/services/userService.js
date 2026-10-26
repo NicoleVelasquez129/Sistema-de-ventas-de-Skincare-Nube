@@ -1,7 +1,7 @@
 const { Usuario } = require("../models");
 
 const obtenerUsuariosService = async () => {
-    return await Usuario.findAll({ attributes: { exclude: ['contrasena_cifrada'] } });
+    return await Usuario.findAll({ attributes: { exclude: ['contrasena_cifrada', 'reset_token_hash', 'reset_expira'] } });
 };
 
 const registrarUsuarioService = async (datos) => {

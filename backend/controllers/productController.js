@@ -3,6 +3,7 @@ const {
     crearProductoService, 
     actualizarProductoService, 
     desactivarProductoService, 
+    eliminarProductoDefinitivoService,
     obtenerProductosStockBajoService 
 } = require("../services/productService");
 
@@ -43,6 +44,15 @@ const desactivarProducto = async (req, res) => {
     }
 };
 
+const eliminarProductoDefinitivo = async (req, res) => {
+    try {
+        const resultado = await eliminarProductoDefinitivoService(req.params.id);
+        return res.status(200).json({ success: true, mensaje: "Producto eliminado definitivamente", data: resultado });
+    } catch (error) {
+        return res.status(error.status || 400).json({ success: false, mensaje: "Error al eliminar el producto", error: error.message });
+    }
+};
+
 const obtenerProductosStockBajo = async (req, res) => {
     try {
         const productosBajos = await obtenerProductosStockBajoService();
@@ -57,4 +67,4 @@ const obtenerProductosStockBajo = async (req, res) => {
     }
 };
 
-module.exports = { obtenerProductos, crearProducto, actualizarProducto, desactivarProducto, obtenerProductosStockBajo };
+module.exports = { obtenerProductos, crearProducto, actualizarProducto, desactivarProducto, eliminarProductoDefinitivo, obtenerProductosStockBajo };

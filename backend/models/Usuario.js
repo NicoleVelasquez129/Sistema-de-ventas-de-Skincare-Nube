@@ -34,6 +34,14 @@ const Usuario = sequelize.define("Usuario", {
     activo: {
         type: DataTypes.BOOLEAN,
         defaultValue: true
+    },
+    reset_token_hash: {
+        type: DataTypes.STRING(64),
+        allowNull: true
+    },
+    reset_expira: {
+        type: DataTypes.DATE,
+        allowNull: true
     }
 }, {
     tableName: "usuarios",

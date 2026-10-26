@@ -61,3 +61,45 @@ export const loginAPI = async (correo: string, contrasena: string) => {
   }
   return { success: false, error: (data.error || data.mensaje || 'No se pudo iniciar sesión') as string };
 };
+const guardarSesion = (datos: { token: string; usuario: UsuarioSesion }) => {
+  localStorage.setItem(CLAVE_TOKEN, datos.token);
+  localStorage.setItem(CLAVE_USUARIO, JSON.stringify(datos.usuario));
+};
+
+export const registroAPI = async (datos: { nombre: string; correo: string; contrasena: string; telefono?: string }) => {
+  const response = await fetch(`${API_URL}/auth/registro`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos),
+  });
+  const data = await response.json();
+  if (data.success) {
+    guardarSesion(data.data);
+    return { success: true, usuario: data.data.usuario as UsuarioSesion };
+  }
+  return { success: false, error: (data.error || data.mensaje || 'No se pudo crear la cuenta') as string };
+};
+
+export const olvideContrasenaAPI = async (correo: string) => {
+  const response = await fetch(`${API_URL}/auth/olvide-contrasena`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ correo }),
+  });
+  const data = await response.json();
+  return data.success
+    ? { success: true, mensaje: data.mensaje as string }
+    : { success: false, error: (data.error || data.mensaje || 'No se pudo procesar la solicitud') as string };
+};
+
+export const restablecerContrasenaAPI = async (token: string, contrasena: string) => {
+  const response = await fetch(`${API_URL}/auth/restablecer-contrasena`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, contrasena }),
+  });
+  const data = await response.json();
+  return data.success
+    ? { success: true, mensaje: data.mensaje as string }
+    : { success: false, error: (data.error || data.mensaje || 'No se pudo cambiar la contraseña') as string };
+};

@@ -1,525 +1,189 @@
-# ☁️ Frontend - Sistema Web de Ventas "Skinker Nube"
+# Frontend - Skinker Nube
 
-Aplicación web desarrollada como parte de la materia **Tecnología Web II**. Este cliente web está construido como una interfaz moderna, limpia y **100% responsiva** para la gestión integral, control de inventario y punto de venta de productos de skincare y cuidado personal.
+Este proyecto corresponde al frontend de la aplicacion web de ventas y gestion de skincare desarrollada en el marco de la materia Tecnologia Web II. La interfaz permite administrar productos, clientes, categorias, ventas y acceso por roles, conectandose con el backend mediante una API REST.
 
----
+La app fue construida en React + TypeScript con Vite y presenta una interfaz moderna, sobria y adaptativa para gestionar operaciones de negocio de una tienda de cuidado personal.
 
-## 🛠️ Tecnologías Utilizadas
+## Descripcion general
 
-### ⚛️ React
+El frontend tiene como objetivo centralizar todas las operaciones visibles para el usuario final:
 
-Biblioteca de JavaScript para la construcción de interfaces de usuario modulares.
+- autenticacion de usuarios
+- navegacion por secciones
+- visualizacion del catalogo de productos
+- registro de ventas con validaciones
+- gestion de clientes y categorias
+- mensajes de estado y feedback visual
+- control de acceso por tipo de usuario
 
-### 🔷 TypeScript
+## Tecnologias utilizadas
 
-Superset de JavaScript que aporta tipado estático y robustez al desarrollo.
+- React 19
+- TypeScript
+- Vite
+- React Router DOM
+- CSS moderno con estilos inline
+- Fetch API para consumo de servicios REST
 
-### ⚡ Vite
-
-Herramienta de compilación y empaquetado de alto rendimiento para entorno frontend.
-
-### 🌐 HTML5 y CSS3
-
-Tecnologías utilizadas para la estructura y presentación de la aplicación web, con estilos personalizados adaptados mediante una paleta de colores suave y armónica.
-
-**Color principal:**
-
-```text
-#8de5db
-```
-
-### 🔧 Git y GitHub
-
-Herramientas utilizadas para el control de versiones local, seguimiento de cambios y respaldo remoto del proyecto en la nube.
-
----
-
-# 📂 Estructura del Proyecto (Frontend)
-
-La arquitectura del proyecto está organizada por carpetas funcionales para separar responsabilidades y asegurar un código escalable:
+## Estructura del proyecto
 
 ```text
 frontend/
-├── node_modules/
 ├── public/
 ├── src/
-│   ├── assets/          # Recursos gráficos y estáticos
-│   ├── components/      # Componentes reutilizables (Navbar, UIFeedback)
-│   ├── interfaces/      # Tipado estático y modelos de datos (TypeScript)
-│   ├── pages/           # Vistas principales (Catalogo, Ventas, Gestion)
-│   ├── services/        # Módulo centralizado de consumo de API REST
-│   ├── App.tsx          # Componente principal y enrutador de vistas
-│   ├── main.tsx         # Punto de entrada de React
-│   └── index.css        # Estilos globales y diseño responsive
-├── .gitignore
+│   ├── assets/
+│   ├── components/
+│   │   ├── Navbar.tsx
+│   │   └── UIFeedback.tsx
+│   ├── interfaces/
+│   │   └── index.ts
+│   ├── pages/
+│   │   ├── Catalogo.tsx
+│   │   ├── Gestion.tsx
+│   │   ├── Login.tsx
+│   │   └── Ventas.tsx
+│   ├── services/
+│   │   ├── apiService.ts
+│   │   └── authService.ts
+│   ├── App.tsx
+│   ├── main.tsx
+│   └── index.css
+├── README FRONT.md
 ├── package.json
 ├── tsconfig.json
-└── vite.config.ts
+├── vite.config.ts
+└── .gitignore
 ```
 
----
+## Modulos principales
 
-# ✨ Características Principales y Módulos
+### Login y autenticacion
 
-## 🛍️ Catálogo de Productos
+La aplicacion cuenta con un flujo de autenticacion completo a traves de la vista Login.
 
-El módulo de catálogo permite visualizar y administrar los productos disponibles dentro del sistema.
+- ingreso de correo y contraseña
+- validacion de campos
+- llamada al backend mediante loginAPI
+- almacenamiento del token y del usuario en localStorage
+- validacion de expiracion del JWT
+- cierre de sesion con limpieza de datos locales
 
-### Funcionalidades principales:
+### Catalogo de productos
 
-- Visualización interactiva de productos mediante tarjetas en formato **grid**.
-- Presentación de imágenes de los productos.
-- Visualización de precios.
-- Control visual del stock disponible.
-- Identificación visual de productos con stock crítico.
-- Buscador en tiempo real de productos.
-- Operaciones CRUD integradas.
-- Edición rápida de productos mediante una ventana modal.
-- Alternancia del estado de los productos entre:
-  - **Activo**
-  - **Inactivo**
+La vista principal del sistema es el catalogo.
 
-El catálogo proporciona una interfaz visual que facilita la consulta y administración de los productos disponibles para la venta.
+Funciones actuales:
 
----
+- carga de productos desde el backend
+- busqueda por nombre
+- listado en tarjetas con imagen, nombre, categoria, precio y stock
+- seleccion de producto para ver detalles
+- compra directa desde el detalle del producto
+- validacion de stock antes de registrar la venta
+- modal para editar producto
+- actualizacion del stock y datos del producto
 
-## 💰 Módulo de Ventas
+### Modulo de ventas
 
-El módulo de ventas permite procesar las transacciones realizadas dentro del sistema.
+La vista Ventas permite registrar transacciones de forma simple y validada.
 
-### Funcionalidades principales:
+- seleccion de cliente
+- seleccion de producto
+- validacion de cantidad
+- envio de la venta al backend
+- actualizacion del inventario
+- mensajes de exito o error
 
-- Formulario inteligente para registrar ventas.
-- Selección de clientes existentes.
-- Selección de productos existentes.
-- Validación de la información antes de procesar la venta.
-- Validación de existencias disponibles.
-- Comunicación con el backend mediante API REST.
-- Descuento automático del inventario después de una venta.
-- Validación de existencias realizada en el backend.
+### Gestion de clientes y categorias
 
-El módulo permite centralizar el proceso de venta y mantener actualizado el inventario de productos.
+La vista Gestion incluye dos secciones:
 
----
+- clientes: registrar nombre, telefono y correo
+- categorias: registrar nombre y descripcion
+- listado de datos ya cargados
 
-## ⚙️ Panel de Gestión
+### Feedback visual
 
-El panel de gestión contiene secciones destinadas a la administración de información complementaria del sistema.
+El componente UIFeedback muestra mensajes flotantes de:
 
-### 👥 Gestión de Clientes
+- carga
+- error
+- exito
 
-Permite realizar el alta y control de nuevos clientes.
+Esto mejora la experiencia del usuario en todas las operaciones.
 
-Los datos gestionados incluyen:
+## Routing actual
 
-- Nombre.
-- Teléfono.
-- Correo electrónico.
-
-### 🏷️ Gestión de Categorías
-
-Permite realizar el alta y control de las categorías utilizadas para clasificar los productos.
-
-La gestión de categorías facilita la organización del catálogo y permite mantener una estructura ordenada de los productos disponibles.
-
----
-
-# 🚨 Manejo de Errores y Feedback Visual
-
-El sistema incorpora mecanismos de retroalimentación visual para informar al usuario sobre el resultado de las operaciones realizadas.
-
-### 🔔 Sistema de notificaciones
-
-Se implementa un sistema global de notificaciones flotantes mediante **toasts**, utilizado para mostrar mensajes de:
-
-- Éxito.
-- Error.
-
-Estas notificaciones permiten al usuario conocer inmediatamente si una operación fue realizada correctamente o si ocurrió algún problema.
-
-### ⏳ Indicador de carga
-
-El sistema incorpora un **spinner de carga** para indicar visualmente que una operación se encuentra en proceso, especialmente durante las comunicaciones con el backend y ante posibles latencias de red.
-
-Esto permite mejorar la experiencia del usuario evitando que una operación parezca detenida o sin respuesta.
-
----
-
-# 📱 Diseño Responsive
-
-La aplicación cuenta con un diseño **100% responsive**, permitiendo que la interfaz se adapte de manera fluida a diferentes tamaños de pantalla.
-
-El diseño contempla:
-
-- 📱 Dispositivos móviles.
-- 📲 Tablets.
-- 💻 Computadoras de escritorio.
-
-Para lograr esta adaptabilidad se utilizan:
-
-- CSS moderno.
-- Media queries.
-- Diseños flexibles.
-- Distribuciones adaptativas.
-- Componentes preparados para diferentes resoluciones.
-
-El objetivo es mantener una experiencia de usuario consistente independientemente del dispositivo utilizado para acceder al sistema.
-
----
-
-# 🔌 Comunicación con el Backend
-
-El frontend se comunica con el servidor backend mediante una **API REST**.
-
-La comunicación se encuentra centralizada dentro del módulo:
+La aplicacion usa BrowserRouter y tiene las rutas:
 
 ```text
-src/services/
+/
+/login
+/ventas
+/gestion
 ```
 
-Esta organización permite separar la lógica relacionada con las peticiones HTTP de los componentes visuales de la aplicación.
+## Servicios de API
 
-La estructura facilita:
+La capa de servicios esta centralizada en `src/services/apiService.ts`.
 
-- Consumo de endpoints.
-- Envío de información al backend.
-- Recepción de respuestas.
-- Manejo de errores.
-- Actualización de información.
-- Mantenimiento del código.
+Funciones clave:
 
-El frontend depende del backend de **Skinker Nube**, el cual debe encontrarse disponible para ejecutar correctamente las operaciones que requieren acceso a datos.
+- obtenerProductosAPI
+- obtenerClientesAPI
+- obtenerCategoriasAPI
+- registrarVentaAPI
+- crearClienteAPI
+- crearCategoriaAPI
+- actualizarProductoAPI
 
----
-
-# 🧩 Organización de Componentes
-
-El proyecto utiliza una estructura basada en componentes reutilizables.
-
-Dentro de:
-
-```text
-src/components/
-```
-
-se encuentran componentes utilizados en diferentes partes de la aplicación.
-
-Entre ellos se encuentran:
-
-- `Navbar`
-- `UIFeedback`
-
-Esta organización permite evitar la duplicación de código y facilita el mantenimiento de la interfaz.
-
----
-
-# 📐 Tipado con TypeScript
-
-El proyecto utiliza **TypeScript** para proporcionar tipado estático a la aplicación.
-
-Los tipos e interfaces se encuentran organizados dentro de:
-
-```text
-src/interfaces/
-```
-
-Esta estructura permite definir modelos de datos utilizados por los diferentes módulos del sistema.
-
-El uso de TypeScript ayuda a:
-
-- Detectar errores durante el desarrollo.
-- Mejorar la legibilidad del código.
-- Mantener estructuras de datos consistentes.
-- Facilitar el mantenimiento.
-- Mejorar el desarrollo de componentes.
-- Reducir errores relacionados con tipos de datos.
-
----
-
-# 🖥️ Vistas Principales
-
-Las vistas principales de la aplicación se encuentran organizadas dentro de:
-
-```text
-src/pages/
-```
-
-Entre las principales vistas se encuentran:
-
-### 📦 Catálogo
-
-Vista destinada a la visualización, búsqueda y administración de productos.
-
-### 💵 Ventas
-
-Vista destinada al registro y procesamiento de las ventas.
-
-### ⚙️ Gestión
-
-Vista destinada a la administración de clientes y categorías.
-
-Esta separación permite mantener las responsabilidades de cada sección claramente organizadas.
-
----
-
-# 🎨 Estilos Globales
-
-Los estilos generales de la aplicación se encuentran en:
-
-```text
-src/index.css
-```
-
-En este archivo se establecen los estilos globales utilizados por la interfaz y las reglas necesarias para conseguir un diseño responsive.
-
-La aplicación utiliza una paleta visual suave y armónica, destacando el color:
-
-```text
-#8de5db
-```
-
-Este color forma parte de la identidad visual utilizada en la interfaz del sistema.
-
----
-
-# 🚀 Cómo Ejecutar el Proyecto Localmente
-
-Para ejecutar el proyecto correctamente en un entorno local es necesario contar previamente con **Node.js**, preferentemente una versión **LTS**.
-
-Además, el servidor backend de **Skinker Nube** debe encontrarse en ejecución en el:
-
-```text
-puerto 3000
-```
-
----
-
-## 1️⃣ Clonar el repositorio
-
-Primero se debe clonar el repositorio del proyecto desde GitHub.
-
-Ejemplo:
-
-```bash
-git clone URL_DEL_REPOSITORIO
-```
-
-Posteriormente, ingresar a la carpeta del proyecto:
+## Instalacion y ejecucion
 
 ```bash
 cd frontend
-```
-
----
-
-## 2️⃣ Instalar las dependencias
-
-Una vez dentro de la carpeta `frontend`, instalar todas las dependencias necesarias mediante:
-
-```bash
 npm install
-```
-
-Este comando instala las dependencias especificadas en el archivo:
-
-```text
-package.json
-```
-
----
-
-## 3️⃣ Ejecutar el servidor de desarrollo
-
-Para iniciar el proyecto en modo desarrollo ejecutar:
-
-```bash
 npm run dev
 ```
 
-Vite iniciará el servidor de desarrollo y mostrará en la terminal la dirección local disponible para acceder a la aplicación.
+La app normalmente se abre en:
 
----
+```text
+http://localhost:5173
+```
 
-# 📋 Resumen de Comandos
-
-Los principales comandos utilizados para ejecutar el proyecto son:
+## Build de produccion
 
 ```bash
-# Ingresar a la carpeta del frontend
-cd frontend
-
-# Instalar dependencias
-npm install
-
-# Ejecutar el servidor de desarrollo
-npm run dev
+npm run build
 ```
 
----
+## Roles y permisos
 
-# 📁 Archivos Principales
+- administrador: acceso a ventas y gestion
+- cliente: acceso al catalogo y flujo de compra
 
-| Archivo / Carpeta | Descripción |
-|---|---|
-| `src/assets/` | Recursos gráficos y estáticos |
-| `src/components/` | Componentes reutilizables |
-| `src/interfaces/` | Interfaces y modelos de datos TypeScript |
-| `src/pages/` | Vistas principales de la aplicación |
-| `src/services/` | Consumo centralizado de la API REST |
-| `src/App.tsx` | Componente principal y enrutador de vistas |
-| `src/main.tsx` | Punto de entrada de React |
-| `src/index.css` | Estilos globales y diseño responsive |
-| `public/` | Archivos públicos y recursos estáticos |
-| `package.json` | Dependencias y scripts del proyecto |
-| `tsconfig.json` | Configuración de TypeScript |
-| `vite.config.ts` | Configuración de Vite |
-| `.gitignore` | Archivos y carpetas excluidos del control de versiones |
+## Estado actual del proyecto
 
----
+El frontend ya incluye:
 
-# 🔄 Flujo General de la Aplicación
+- autenticacion con JWT
+- login funcional
+- proteccion de rutas por rol
+- catalogo de productos
+- compras con validacion de stock
+- registro de ventas
+- alta de clientes
+- alta de categorias
+- edicion de productos
+- feedback visual para errores y mensajes de exito
+- interfaz responsiva
 
-El funcionamiento general del frontend sigue el siguiente flujo:
+## Nota importante
+
+Este frontend depende de que el backend de Skinker Nube este ejecutandose correctamente en:
 
 ```text
-                    ┌─────────────────────┐
-                    │       USUARIO       │
-                    └──────────┬──────────┘
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │      REACT UI       │
-                    │   Interfaz Web      │
-                    └──────────┬──────────┘
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │     COMPONENTES     │
-                    │ Navbar / Feedback   │
-                    └──────────┬──────────┘
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │       PAGES         │
-                    │ Catálogo / Ventas   │
-                    │      Gestión        │
-                    └──────────┬──────────┘
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │      SERVICES       │
-                    │      API REST       │
-                    └──────────┬──────────┘
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │       BACKEND       │
-                    │  Skinker Nube API   │
-                    └──────────┬──────────┘
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │      DATOS / BD     │
-                    └─────────────────────┘
+http://localhost:3000/api
 ```
 
----
-
-# 🏗️ Arquitectura General del Frontend
-
-La aplicación utiliza una organización por responsabilidades para mantener un código modular y escalable.
-
-```text
-┌───────────────────────────────────────────────┐
-│                    FRONTEND                   │
-├───────────────────────────────────────────────┤
-│                                               │
-│                  App.tsx                      │
-│                    │                          │
-│          ┌─────────┴─────────┐                │
-│          │                   │                │
-│       Components           Pages              │
-│          │                   │                │
-│     ┌────┴────┐       ┌─────┼─────┐          │
-│     │         │       │     │     │          │
-│  Navbar   UIFeedback  Catálogo Ventas Gestión │
-│                            │                  │
-│                            ▼                  │
-│                         Services              │
-│                            │                  │
-│                            ▼                  │
-│                         API REST              │
-│                            │                  │
-└────────────────────────────┼──────────────────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │     BACKEND     │
-                    └─────────────────┘
-```
-
----
-
-# 🔐 Consideraciones del Proyecto
-
-Para ejecutar correctamente el frontend es importante verificar previamente:
-
-- Tener instalado Node.js.
-- Utilizar una versión LTS recomendada de Node.js.
-- Tener las dependencias instaladas mediante `npm install`.
-- Tener disponible el backend de Skinker Nube.
-- Verificar que el backend se encuentre ejecutándose en el puerto `3000`.
-- Ejecutar el frontend mediante `npm run dev`.
-
----
-
-# ☁️ Proyecto Skinker Nube
-
-**Skinker Nube** es un sistema web orientado a la gestión de ventas, productos, inventario, clientes y categorías para una tienda de productos de skincare y cuidado personal.
-
-El frontend proporciona una interfaz moderna y responsive que permite a los usuarios interactuar con las diferentes funcionalidades del sistema mediante una experiencia visual clara y organizada.
-
----
-
-# 👩‍💻 Desarrollo
-
-Proyecto desarrollado como parte de la materia:
-
-**Tecnología Web II**
-
-El frontend fue desarrollado utilizando tecnologías modernas orientadas al desarrollo de aplicaciones web, priorizando:
-
-- Modularidad.
-- Reutilización de componentes.
-- Tipado estático.
-- Separación de responsabilidades.
-- Comunicación mediante API REST.
-- Diseño responsive.
-- Experiencia de usuario.
-- Mantenibilidad.
-- Escalabilidad.
-
----
-
-# 📌 Estado del Proyecto
-
-**Frontend funcional para el sistema web de ventas Skinker Nube.**
-
-El proyecto incluye los principales módulos necesarios para:
-
-- Gestión de productos.
-- Consulta de catálogo.
-- Control visual de inventario.
-- Registro de ventas.
-- Gestión de clientes.
-- Gestión de categorías.
-- Comunicación con el backend.
-- Manejo de errores.
-- Feedback visual.
-- Diseño responsive.
-
----
-
-# 📝 Licencia
-
-Proyecto desarrollado con fines académicos para la materia **Tecnología Web II**.
+Si el backend no esta activo, muchas operaciones no funcionaran.

@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require("path");
 const cors = require("cors");
 const sequelize = require("./config/database");
 require("dotenv").config();
@@ -17,12 +18,19 @@ app.use(helmet());
 app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:5173" }));
 app.use(express.json());
 
+// Imágenes subidas por el administrador (se permite mostrarlas desde el frontend, que corre en otro puerto)
+app.use("/uploads", (req, res, next) => {
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    next();
+}, express.static(path.join(__dirname, "uploads"), { dotfiles: "deny", index: false }));
+
 // Importar Rutas REST
 const productRoutes = require("./routes/productRoutes");
 const saleRoutes = require("./routes/saleRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
 const clientRoutes = require("./routes/clientRoutes");
 const userRoutes = require("./routes/userRoutes");
+const uploadRoutes = require("./routes/uploadRoutes");
 
 // Ruta raíz de documentación básica de la API
 app.get("/", (req, res) => {
@@ -42,7 +50,8 @@ app.get("/", (req, res) => {
             "GET /api/clientes": "Lista todos los clientes registrados",
             "POST /api/clientes": "Registra un nuevo cliente",
             "GET /api/usuarios": "Lista los usuarios del sistema (solo administrador)",
-            "POST /api/auth/login": "Inicia sesión y devuelve un token de acceso"
+            "POST /api/auth/login": "Inicia sesión y devuelve un token de acceso",
+            "POST /api/upload": "Sube una imagen de producto (solo administrador)"
         }
     });
 });
@@ -54,6 +63,7 @@ app.use("/api/ventas", saleRoutes);
 app.use("/api/categorias", categoryRoutes);
 app.use("/api/clientes", clientRoutes);
 app.use("/api/usuarios", userRoutes);
+app.use("/api/upload", uploadRoutes);
 
 // Conexión a la Base de Datos y arranque del Servidor
 async function iniciarServidor() {

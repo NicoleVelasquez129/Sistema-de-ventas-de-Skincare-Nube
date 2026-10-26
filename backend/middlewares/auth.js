@@ -19,5 +19,10 @@ const soloAdmin = (req, res, next) => {
     }
     next();
 };
+// Para rutas públicas que, con ?todos=true, devuelven datos solo para el administrador
+const adminSiPideTodos = (req, res, next) => {
+    if (req.query.todos !== "true") return next();
+    verificarToken(req, res, () => soloAdmin(req, res, next));
+};
 
-module.exports = { verificarToken, soloAdmin };
+module.exports = { verificarToken, soloAdmin, adminSiPideTodos };
