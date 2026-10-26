@@ -7,15 +7,17 @@ const {
     obtenerProductosStockBajoService 
 } = require("../services/productService");
 
+// cambios para el examen
 const obtenerProductos = async (req, res) => {
     try {
         const incluirInactivos = req.query.todos === 'true';
-        const productos = await obtenerProductosService(incluirInactivos);
+        const buscar = typeof req.query.buscar === 'string' ? req.query.buscar.trim() : '';
+        const productos = await obtenerProductosService(incluirInactivos, buscar);
         return res.status(200).json({ success: true, total: productos.length, data: productos });
     } catch (error) {
         return res.status(500).json({ success: false, mensaje: "Error al obtener productos", error: error.message });
     }
-};
+}; 
 
 const crearProducto = async (req, res) => {
     try {

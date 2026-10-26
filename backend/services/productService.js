@@ -4,8 +4,11 @@ const { Producto, Categoria, DetalleVenta } = require("../models");
 const sequelize = require("../config/database");
 const { Op } = require("sequelize");
 
-const esEnteroNoNegativo = (v) =>
-    (typeof v === "number" || typeof v === "string") && v !== "" && Number.isInteger(Number(v)) && Number(v) >= 0;
+const esStockProductoValido = (v) =>
+    (typeof v === "number" || typeof v === "string") && v !== "" && Number.isInteger(Number(v)) && Number(v) >= 1 && Number(v) <= 200;
+
+const esStockMinimoValido = (v) =>
+    (typeof v === "number" || typeof v === "string") && v !== "" && Number.isInteger(Number(v)) && Number(v) >= 0 && Number(v) <= 200;
 
 const textoOpcionalONulo = (v) => (v === undefined ? undefined : (v === null || String(v).trim() === "" ? null : String(v).trim()));
 
@@ -39,17 +42,19 @@ const validarDatosProducto = async (d) => {
     if (d.etiqueta !== undefined && d.etiqueta !== null && (typeof d.etiqueta !== "string" || d.etiqueta.trim().length > 30)) {
         throw new Error("La etiqueta debe ser texto de máximo 30 caracteres.");
     }
+    // cambios para el examen
     if (d.precio !== undefined) {
         const p = Number(d.precio);
-        if (d.precio === "" || typeof d.precio === "boolean" || !Number.isFinite(p) || p <= 0 || p > 99999999.99) {
-            throw new Error("El precio debe ser un número mayor a 0.");
+        if (d.precio === "" || typeof d.precio === "boolean" || !Number.isFinite(p) || p <= 0 || p > 5000) {
+            throw new Error("El precio debe ser mayor a 0 y no superar Bs 5.000.");
         }
     }
-    if (d.stock !== undefined && !esEnteroNoNegativo(d.stock)) {
-        throw new Error("El stock debe ser un número entero mayor o igual a 0.");
+    // 
+    if (d.stock !== undefined && !esStockProductoValido(d.stock)) {
+        throw new Error("El stock debe ser un número entero entre 1 y 200.");
     }
-    if (d.stock_minimo !== undefined && !esEnteroNoNegativo(d.stock_minimo)) {
-        throw new Error("El stock mínimo debe ser un número entero mayor o igual a 0.");
+    if (d.stock_minimo !== undefined && !esStockMinimoValido(d.stock_minimo)) {
+        throw new Error("El stock mínimo debe ser un número entero entre 1 y 200.");
     }
     if (d.activo !== undefined && typeof d.activo !== "boolean") {
         throw new Error("El estado activo debe ser verdadero o falso.");
@@ -61,23 +66,32 @@ const validarDatosProducto = async (d) => {
         if (!categoria) throw new Error("La categoría indicada no existe.");
     }
 };
-
-const obtenerProductosService = async (incluirInactivos = false) => {
+// cambios del examen
+const obtenerProductosService = async (incluirInactivos = false, buscar = "") => {
+    const condiciones = [];
+    if (!incluirInactivos) condiciones.push({ activo: true });
+    if (buscar) {
+        
+        const patron = `%${buscar.toLowerCase().replace(/[\\%_]/g, "\\$&")}%`; 
+        //para entrar al SQL 
+        condiciones.push(
+            sequelize.where(sequelize.fn("LOWER", sequelize.col("Producto.nombre")), { [Op.like]: patron })
+        );
+    }
     return await Producto.findAll({
-        where: incluirInactivos ? {} : { activo: true },
+        where: { [Op.and]: condiciones },
         include: [{ model: Categoria, attributes: ['nombre'] }],
         order: [['id_producto', 'ASC']]
     });
-};
+}; 
 
 const crearProductoService = async (datos) => {
     const { nombre, descripcion, imagen, precio, stock, stock_minimo, id_categoria, activo } = datos;
     const ingredientes = textoOpcionalONulo(datos.ingredientes);
     const modo_uso = textoOpcionalONulo(datos.modo_uso);
     const etiqueta = textoOpcionalONulo(datos.etiqueta);
-    if (!nombre || !precio || stock === undefined || !id_categoria) {
-        
-        throw new Error("Nombre, precio, stock y categoría son obligatorios.");
+    if (!nombre || !precio || stock === undefined || Number(stock) < 1 || Number(stock) > 200 || !id_categoria) {
+        throw new Error("Nombre, precio, stock (entre 1 y 200) y categoría son obligatorios.");
     }
     await validarDatosProducto(datos);
     return await Producto.create({ nombre: nombre.trim(), descripcion, imagen, ingredientes, modo_uso, etiqueta, precio, stock, stock_minimo, id_categoria, activo: activo !== undefined ? activo : true });

@@ -103,14 +103,14 @@ const FormularioProducto: React.FC<FormularioProps> = ({
 
     if (!nombre.trim()) return onMostrarMensaje('El nombre es obligatorio.', true);
     if (!idCategoria) return onMostrarMensaje('Selecciona una categoría.', true);
-    if (precio === '' || !Number.isFinite(precioNum) || precioNum <= 0) {
-      return onMostrarMensaje('El precio debe ser un número mayor a 0.', true);
+    if (precio === '' || !Number.isFinite(precioNum) || precioNum <= 0 || precioNum > 5000) {
+      return onMostrarMensaje('El precio debe ser mayor a 0 y no superar Bs 5.000.', true);
     }
-    if (stock === '' || !Number.isInteger(stockNum) || stockNum < 0) {
-      return onMostrarMensaje('El stock debe ser un número entero mayor o igual a 0.', true);
+    if (stock === '' || !Number.isInteger(stockNum) || stockNum < 1 || stockNum > 200) {
+      return onMostrarMensaje('El stock debe ser un número entero entre 1 y 200.', true);
     }
-    if (stockMinimo === '' || !Number.isInteger(minimoNum) || minimoNum < 0) {
-      return onMostrarMensaje('El stock mínimo debe ser un número entero mayor o igual a 0.', true);
+    if (stockMinimo === '' || !Number.isInteger(minimoNum) || minimoNum < 0 || minimoNum > 200) {
+      return onMostrarMensaje('El stock mínimo debe ser un número entero entre 0 y 200.', true);
     }
 
     setGuardando(true);
@@ -323,7 +323,7 @@ export const ProductosAdmin: React.FC<ProductosAdminProps> = ({ onMostrarMensaje
     return productos.filter(p => {
       if (filtroEstado === 'activos' && p.activo === false) return false;
       if (filtroEstado === 'inactivos' && p.activo !== false) return false;
-      return !texto || p.nombre.toLowerCase().includes(texto);
+      return !texto || p.nombre.toLowerCase().includes(texto);//examen
     });
   }, [productos, busqueda, filtroEstado]);
 
@@ -392,7 +392,7 @@ export const ProductosAdmin: React.FC<ProductosAdminProps> = ({ onMostrarMensaje
           value={busqueda}
           onChange={e => setBusqueda(e.target.value)}
           placeholder="Buscar por nombre…"
-          aria-label="Buscar producto"
+          aria-label="Buscar producto"//examen
           className={`${claseCampo} sm:max-w-xs`}
         />
         <div className="flex gap-2">
