@@ -85,7 +85,9 @@ export const Catalogo: React.FC<{ onAddToCart: (item: Producto, qty: number) => 
                 onChange={e => setBusqueda(e.target.value)}
                 placeholder="Buscar por nombre o código…"
                 aria-label="Buscar producto por nombre o código"
-                className="w-full rounded-full border border-[#e7ddd0] bg-[#faf7f2] py-3 pl-11 pr-4 text-sm text-slate-700 shadow-inner shadow-white/80 outline-none transition focus:border-[#b9a68a] focus:bg-white focus:ring-4 focus:ring-[#d9c9ae]/30"
+                className="w-full rounded-full border border-[#e7ddd0] bg-[#faf7f2] 
+                py-3 pl-11 pr-4 text-sm text-slate-700 shadow-inner shadow-white/80 outline-none transition 
+                focus:border-[#b9a68a] focus:bg-white focus:ring-4 focus:ring-[#d9c9ae]/30"
               />
             </div>
           </div>
