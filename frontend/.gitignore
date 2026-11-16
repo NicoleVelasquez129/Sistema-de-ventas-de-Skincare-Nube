@@ -32,3 +32,4 @@ dist/
 *.log
 .DS_Store
 .env.docker
+.env.example
