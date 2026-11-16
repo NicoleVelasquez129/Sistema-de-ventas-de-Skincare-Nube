@@ -14,6 +14,10 @@ const Cliente = sequelize.define("Cliente", {
             notEmpty: { msg: "El nombre del cliente no puede estar vacío." }
         }
     },
+        carnet: {
+        type: DataTypes.STRING(20),
+        allowNull: true
+    },
     telefono: {
         type: DataTypes.STRING(50)
     },
@@ -22,7 +26,12 @@ const Cliente = sequelize.define("Cliente", {
         validate: {
             isEmail: { msg: "Debe proporcionar un correo electrónico válido." }
         }
+    },
+    direccion: {
+    type: DataTypes.STRING(255),
+    allowNull: true
     }
+    
 }, {
     tableName: "clientes",
     timestamps: true

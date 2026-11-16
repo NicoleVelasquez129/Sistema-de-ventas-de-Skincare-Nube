@@ -66,13 +66,14 @@ const registrarClienteService = async (datos) => {
     }
     const correoNormalizado = typeof correo === "string" ? correo.trim().toLowerCase() : "";
     if (!REGEX_CORREO.test(correoNormalizado) || correoNormalizado.length > 150) {
-        throw errorHttp(400, "Ingresa un correo electrónico válido.");
+        throw errorHttp(400, "Ingresa un correo electrónico válido.");   
     }
+    
     validarContrasenaNueva(contrasena);
-    if (telefono !== undefined && telefono !== null && telefono !== "" &&
-        (typeof telefono !== "string" || telefono.trim().length > 50)) {
-        throw errorHttp(400, "El teléfono debe tener máximo 50 caracteres.");
+    if (typeof telefono !== "string" || !telefono.trim() || telefono.trim().length > 50) {
+        throw errorHttp(400, "El celular es obligatorio (máximo 50 caracteres).");
     }
+ 
 
     const existente = await Usuario.findOne({ where: { correo: correoNormalizado } });
     if (existente) {

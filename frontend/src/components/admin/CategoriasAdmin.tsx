@@ -5,6 +5,7 @@ import {
   actualizarCategoriaAPI,
   crearCategoriaAPI,
   eliminarCategoriaAPI,
+  moverProductosAPI,
   obtenerCategoriasAPI,
 } from '../../services/apiService';
 
@@ -126,6 +127,89 @@ const FormularioCategoria: React.FC<FormularioCategoriaProps> = ({
   );
 };
 
+interface MoverProductosProps {
+  origen: Categoria;
+  categorias: Categoria[];
+  onCerrar: () => void;
+  onMovidos: () => void;
+  onMostrarMensaje: (msg: string, esError: boolean) => void;
+  onSetCargando: (cargando: boolean) => void;
+}
+
+const MoverProductos: React.FC<MoverProductosProps> = ({
+  origen,
+  categorias,
+  onCerrar,
+  onMovidos,
+  onMostrarMensaje,
+  onSetCargando,
+}) => {
+  const productos = origen.Productos ?? [];
+  const destinos = categorias.filter(c => c.id_categoria !== origen.id_categoria);
+  const [seleccion, setSeleccion] = useState<number[]>([]);
+  const [destino, setDestino] = useState('');
+
+  const alternar = (id: number) =>
+    setSeleccion(actual => (actual.includes(id) ? actual.filter(x => x !== id) : [...actual, id]));
+  const todosMarcados = productos.length > 0 && seleccion.length === productos.length;
+
+  const mover = async () => {
+    onSetCargando(true);
+    try {
+      const res = await moverProductosAPI(seleccion, Number(destino));
+      if (res.success) {
+        onMostrarMensaje(`${res.data.movidos} producto(s) movido(s) a ${res.data.categoria}.`, false);
+        onMovidos();
+      } else {
+        onMostrarMensaje(res.error || res.mensaje || 'No se pudieron mover los productos.', true);
+      }
+    } catch {
+      onMostrarMensaje('Error de red al mover los productos.', true);
+    } finally {
+      onSetCargando(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onCerrar}>
+      <div role="dialog" aria-modal="true" onClick={e => e.stopPropagation()} className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
+        <div className="bg-primary px-6 py-4">
+          <h4 className="font-serif text-lg font-bold text-white">Mover productos de {origen.nombre}</h4>
+        </div>
+        <div className="flex-1 space-y-3 overflow-y-auto px-6 py-5">
+          <label className="flex items-center gap-2 text-sm font-semibold text-stone-700">
+            <input type="checkbox" checked={todosMarcados} onChange={() => setSeleccion(todosMarcados ? [] : productos.map(p => p.id_producto))} />
+            Seleccionar todos ({productos.length})
+          </label>
+          <ul className="space-y-1">
+            {productos.map(p => (
+              <li key={p.id_producto}>
+                <label className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-stone-800 hover:bg-primary/10">
+                  <input type="checkbox" checked={seleccion.includes(p.id_producto)} onChange={() => alternar(p.id_producto)} />
+                  {p.nombre}
+                </label>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="space-y-3 border-t border-stone-200 px-6 py-4">
+          <select value={destino} onChange={e => setDestino(e.target.value)} className={claseCampo} aria-label="Categoría destino">
+            <option value="">Mover a la categoría…</option>
+            {destinos.map(c => <option key={c.id_categoria} value={c.id_categoria}>{c.nombre}</option>)}
+          </select>
+          <div className="flex justify-end gap-3">
+            <button type="button" onClick={onCerrar} className="rounded-xl px-5 py-2.5 text-sm font-semibold text-stone-600 hover:bg-stone-100">Cancelar</button>
+            <button type="button" onClick={mover} disabled={seleccion.length === 0 || !destino}
+              className="rounded-xl bg-nube-oscuro px-5 py-2.5 text-sm font-semibold text-white hover:bg-primaryFocus disabled:opacity-50">
+              Mover {seleccion.length > 0 ? `(${seleccion.length})` : ''}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ------------------------------------------------------------------ */
 /*  Lista de categorías                                                */
 /* ------------------------------------------------------------------ */
@@ -134,6 +218,7 @@ export const CategoriasAdmin: React.FC<CategoriasAdminProps> = ({ onMostrarMensa
   const [cargado, setCargado] = useState(false);
   const [editando, setEditando] = useState<Categoria | 'nueva' | null>(null);
   const [aEliminar, setAEliminar] = useState<Categoria | null>(null);
+  const [moviendo, setMoviendo] = useState<Categoria | null>(null);
 
   const cargar = async () => {
     onSetCargando(true);
@@ -236,6 +321,14 @@ export const CategoriasAdmin: React.FC<CategoriasAdminProps> = ({ onMostrarMensa
                   </button>
                   <button
                     type="button"
+                    onClick={() => setMoviendo(cat)}
+                    disabled={total === 0}
+                    className="rounded-lg px-3 py-1.5 text-sm font-semibold text-nube-oscuro transition hover:bg-primary/10 disabled:cursor-not-allowed disabled:text-stone-300 disabled:hover:bg-transparent"
+                  >
+                    Mover productos
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setAEliminar(cat)}
                     disabled={total > 0}
                     title={total > 0 ? 'Cambia o elimina sus productos primero' : 'Eliminar categoría'}
@@ -255,6 +348,17 @@ export const CategoriasAdmin: React.FC<CategoriasAdminProps> = ({ onMostrarMensa
           categoria={editando === 'nueva' ? null : editando}
           onCerrar={() => setEditando(null)}
           onGuardada={alGuardar}
+          onMostrarMensaje={onMostrarMensaje}
+          onSetCargando={onSetCargando}
+        />
+      )}
+
+      {moviendo && (
+        <MoverProductos
+          origen={moviendo}
+          categorias={categorias}
+          onCerrar={() => setMoviendo(null)}
+          onMovidos={() => { setMoviendo(null); cargar(); }}
           onMostrarMensaje={onMostrarMensaje}
           onSetCargando={onSetCargando}
         />

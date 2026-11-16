@@ -46,6 +46,14 @@ const Producto = sequelize.define("Producto", {
             min: { args: [0], msg: "El precio no puede ser negativo." } // Validación de datos (RF03 / HU03)
         }
     },
+        costo: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+        defaultValue: 0,
+        validate: {
+            min: { args: [0], msg: "El costo no puede ser negativo." }
+        }
+    },
     stock: {
         type: DataTypes.INTEGER,
         allowNull: false,

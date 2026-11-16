@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const { Usuario } = require("../models");
 
 const verificarToken = (req, res, next) => {
     const [tipo, token] = (req.headers.authorization || "").split(" ");
@@ -19,10 +20,27 @@ const soloAdmin = (req, res, next) => {
     }
     next();
 };
+const adminOVendedor = async (req, res, next) => {
+    if (!req.usuario || !["administrador", "vendedor"].includes(req.usuario.rol)) {
+        return res.status(403).json({ success: false, mensaje: "Acceso denegado", error: "No tiene permisos para esta acción." });
+    }
+    if (req.usuario.rol === "vendedor") {
+        try {
+            const cuenta = await Usuario.findByPk(req.usuario.id_usuario, { attributes: ["activo"] });
+            if (!cuenta || !cuenta.activo) {
+                return res.status(403).json({ success: false, mensaje: "Acceso denegado", error: "Tu cuenta está desactivada." });
+            }
+        } catch {
+            return res.status(500).json({ success: false, mensaje: "Error del servidor", error: "No se pudo verificar tu cuenta." });
+        }
+    }
+    next();
+};
+
 // Para rutas públicas que, con ?todos=true, devuelven datos solo para el administrador
 const adminSiPideTodos = (req, res, next) => {
     if (req.query.todos !== "true") return next();
     verificarToken(req, res, () => soloAdmin(req, res, next));
 };
 
-module.exports = { verificarToken, soloAdmin, adminSiPideTodos };
+module.exports = { verificarToken, soloAdmin, adminOVendedor, adminSiPideTodos };

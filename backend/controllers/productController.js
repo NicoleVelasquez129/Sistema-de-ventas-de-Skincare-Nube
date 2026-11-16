@@ -4,7 +4,8 @@ const {
     actualizarProductoService, 
     desactivarProductoService, 
     eliminarProductoDefinitivoService,
-    obtenerProductosStockBajoService 
+    obtenerProductosStockBajoService,
+    moverProductosService
 } = require("../services/productService");
 
 // cambios para el examen
@@ -69,4 +70,14 @@ const obtenerProductosStockBajo = async (req, res) => {
     }
 };
 
-module.exports = { obtenerProductos, crearProducto, actualizarProducto, desactivarProducto, eliminarProductoDefinitivo, obtenerProductosStockBajo };
+const moverProductos = async (req, res) => {
+    try {
+        const { ids, id_categoria } = req.body || {};
+        const resultado = await moverProductosService(ids, id_categoria);
+        return res.status(200).json({ success: true, mensaje: "Productos movidos", data: resultado });
+    } catch (error) {
+        return res.status(400).json({ success: false, mensaje: "Error al mover los productos", error: error.message });
+    }
+};
+
+module.exports = { obtenerProductos, crearProducto, actualizarProducto, desactivarProducto, eliminarProductoDefinitivo, obtenerProductosStockBajo, moverProductos };

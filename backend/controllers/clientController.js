@@ -1,4 +1,4 @@
-const { obtenerClientesService, crearClienteService } = require("../services/clientService");
+const { obtenerClientesService, crearClienteService, buscarPorCarnetService } = require("../services/clientService");
 
 const obtenerClientes = async (req, res) => {
     try {
@@ -18,4 +18,13 @@ const crearCliente = async (req, res) => {
     }
 };
 
-module.exports = { obtenerClientes, crearCliente };
+const buscarPorCarnet = async (req, res) => {
+    try {
+        const cliente = await buscarPorCarnetService(req.params.carnet);
+        return res.status(200).json({ success: true, data: cliente }); // data: null si no existe
+    } catch (error) {
+        return res.status(500).json({ success: false, mensaje: "Error al buscar el cliente", error: error.message });
+    }
+};
+
+module.exports = { obtenerClientes, crearCliente, buscarPorCarnet };

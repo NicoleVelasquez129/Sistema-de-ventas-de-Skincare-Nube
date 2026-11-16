@@ -9,7 +9,8 @@ const {
     actualizarProducto, 
     desactivarProducto ,
     eliminarProductoDefinitivo,
-    obtenerProductosStockBajo
+    obtenerProductosStockBajo,
+    moverProductos
 } = require("../controllers/productController");
 
 // Definición de Endpoints REST (Endpoints documentados para la API)
@@ -19,5 +20,6 @@ router.put("/:id", verificarToken, soloAdmin, validateId, actualizarProducto);
 router.delete("/:id", verificarToken, soloAdmin, validateId, desactivarProducto);
 router.delete("/:id/definitivo", verificarToken, soloAdmin, validateId, eliminarProductoDefinitivo);
 router.get("/stock-bajo", verificarToken, soloAdmin, obtenerProductosStockBajo);
+router.patch("/mover", verificarToken, soloAdmin, moverProductos);
 
 module.exports = router;

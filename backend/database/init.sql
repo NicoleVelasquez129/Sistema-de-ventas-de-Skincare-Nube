@@ -1,597 +1,197 @@
--- ============================================================
--- BASE DE DATOS: SKINKER NUBE
--- Sistema Web de Ventas e Inventario
--- Motor: MySQL
--- ============================================================
-
-
--- ============================================================
--- 1. CREAR BASE DE DATOS
--- ============================================================
-
 DROP DATABASE IF EXISTS skinker_nube_db;
-
-CREATE DATABASE skinker_nube_db
-CHARACTER SET utf8mb4
-COLLATE utf8mb4_unicode_ci;
-
+CREATE DATABASE skinker_nube_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE skinker_nube_db;
-
-
--- ============================================================
--- 2. TABLA: CATEGORIAS
--- Cumple con RF05
--- ============================================================
-
+ 
+-- --------------------------------------------------------
+-- 1. CATEGORIAS
+-- --------------------------------------------------------
 CREATE TABLE categorias (
     id_categoria INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
     descripcion TEXT,
-
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP
-);
-
-
--- ============================================================
--- 3. TABLA: USUARIOS
--- Administradores y clientes
--- Cumple con RF10 / HU15
--- ============================================================
-
+    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+ 
+-- --------------------------------------------------------
+-- 2. USUARIOS (cuentas con login: administrador, vendedor, cliente)
+-- --------------------------------------------------------
 CREATE TABLE usuarios (
     id_usuario INT AUTO_INCREMENT PRIMARY KEY,
-
     nombre VARCHAR(150) NOT NULL,
-
     correo VARCHAR(150) NOT NULL UNIQUE,
-
     contrasena_cifrada VARCHAR(255) NOT NULL,
-
-    rol ENUM(
-        'administrador',
-        'cliente'
-    ) NOT NULL DEFAULT 'cliente',
-
+    rol ENUM('administrador', 'vendedor', 'cliente') NOT NULL DEFAULT 'cliente',
     activo BOOLEAN DEFAULT TRUE,
-
-    -- Recuperación de contraseña
     reset_token_hash VARCHAR(64) NULL,
     reset_expira DATETIME NULL,
-
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP
-);
-
-
--- ============================================================
--- 4. TABLA: PRODUCTOS
--- Inventario y catálogo
--- Cumple con RF04, RF06 / HU03, HU06
--- ============================================================
-
+    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+ 
+-- --------------------------------------------------------
+-- 3. PRODUCTOS (precio de venta y costo de compra)
+-- --------------------------------------------------------
 CREATE TABLE productos (
     id_producto INT AUTO_INCREMENT PRIMARY KEY,
-
     nombre VARCHAR(150) NOT NULL,
-
     descripcion TEXT,
-
     ingredientes TEXT NULL,
-
     modo_uso TEXT NULL,
-
     etiqueta VARCHAR(30) NULL,
-
-    imagen VARCHAR(500) NULL,
-
-    precio DECIMAL(10,2) NOT NULL,
-
-    stock INT NOT NULL DEFAULT 0,
-
-    stock_minimo INT NOT NULL DEFAULT 5,
-
+    imagen VARCHAR(500),
+    precio DECIMAL(10, 2) NOT NULL CHECK (precio >= 0),
+    costo DECIMAL(10, 2) NOT NULL DEFAULT 0.00 CHECK (costo >= 0),
+    stock INT NOT NULL DEFAULT 0 CHECK (stock >= 0),
+    stock_minimo INT NOT NULL DEFAULT 5 CHECK (stock_minimo >= 0),
     activo BOOLEAN DEFAULT TRUE,
-
     id_categoria INT,
-
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_producto_categoria
-        FOREIGN KEY (id_categoria)
-        REFERENCES categorias(id_categoria)
-        ON DELETE SET NULL,
-
-    CONSTRAINT chk_producto_precio
-        CHECK (precio >= 0),
-
-    CONSTRAINT chk_producto_stock
-        CHECK (stock >= 0),
-
-    CONSTRAINT chk_producto_stock_min
-        CHECK (stock_minimo >= 0)
-);
-
-
--- ============================================================
--- 5. TABLA: CLIENTES
--- Gestión de compradores
--- Cumple con RF09 / HU12
--- ============================================================
-
+    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_categoria) REFERENCES categorias(id_categoria) ON DELETE SET NULL
+) ENGINE=InnoDB;
+ 
+-- --------------------------------------------------------
+-- 4. CLIENTES (datos de quien compra; el carnet es opcional)
+-- --------------------------------------------------------
 CREATE TABLE clientes (
     id_cliente INT AUTO_INCREMENT PRIMARY KEY,
-
     nombre VARCHAR(150) NOT NULL,
-
+    carnet VARCHAR(20) NULL UNIQUE,
     telefono VARCHAR(50),
-
     correo VARCHAR(150),
-
+    direccion VARCHAR(255) NULL,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP
-);
-
-
+    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+ 
+-- --------------------------------------------------------
+-- 5. VENTAS
+--   id_usuario  = cuenta del cliente que compro por la plataforma
+--   id_vendedor = vendedor (o admin) que registro la venta en tienda
+--   id_cliente  = datos del cliente (ventas en tienda)
+--   estado         = registrada / anulada
+--   estado_pedido  = pendiente -> pagado -> enviado -> entregado
+-- --------------------------------------------------------
 CREATE TABLE ventas (
     id_venta INT AUTO_INCREMENT PRIMARY KEY,
-
     fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
-
-    total DECIMAL(10,2) NOT NULL,
-
-    envio DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-
-    estado ENUM(
-        'registrada',
-        'anulada'
-    ) DEFAULT 'registrada',
-
-    id_cliente INT,
-
-    id_usuario INT,
-
+    total DECIMAL(10, 2) NOT NULL CHECK (total >= 0),
+    envio DECIMAL(10, 2) NOT NULL DEFAULT 0.00 CHECK (envio >= 0),
+    estado ENUM('registrada', 'anulada') DEFAULT 'registrada',
+    estado_pedido ENUM('pendiente', 'pagado', 'enviado', 'entregado') NOT NULL DEFAULT 'pendiente',
+    direccion_entrega VARCHAR(255) NULL,
+    ubicacion_lat DECIMAL(10, 7) NULL CHECK (ubicacion_lat BETWEEN -90 AND 90),
+    ubicacion_lng DECIMAL(10, 7) NULL CHECK (ubicacion_lng BETWEEN -180 AND 180),
+    imagen_entrega VARCHAR(500) NULL,
+    fecha_entrega DATETIME NULL,
+    id_cliente INT NULL,
+    id_usuario INT NULL,
+    id_vendedor INT NULL,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_venta_cliente
-        FOREIGN KEY (id_cliente)
-        REFERENCES clientes(id_cliente)
-        ON DELETE SET NULL,
-
-    CONSTRAINT fk_venta_usuario
-        FOREIGN KEY (id_usuario)
-        REFERENCES usuarios(id_usuario)
-        ON DELETE SET NULL
-);
-
-
-
+    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente) ON DELETE SET NULL,
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE SET NULL,
+    FOREIGN KEY (id_vendedor) REFERENCES usuarios(id_usuario) ON DELETE SET NULL,
+    INDEX idx_ventas_fecha (fecha),
+    INDEX idx_ventas_estado_pedido (estado_pedido)
+) ENGINE=InnoDB;
+ 
+-- --------------------------------------------------------
+-- 6. DETALLE_VENTAS (precio y costo guardados al momento de la venta)
+--   El producto no se puede borrar si tiene ventas (RESTRICT):
+--   para retirarlo se usa productos.activo = FALSE.
+-- --------------------------------------------------------
 CREATE TABLE detalle_ventas (
     id_detalle INT AUTO_INCREMENT PRIMARY KEY,
-
-    cantidad INT NOT NULL,
-
-    precio_unitario DECIMAL(10,2) NOT NULL,
-
-    subtotal DECIMAL(10,2) NOT NULL,
-
+    cantidad INT NOT NULL CHECK (cantidad > 0),
+    precio_unitario DECIMAL(10, 2) NOT NULL,
+    costo_unitario DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    subtotal DECIMAL(10, 2) NOT NULL,
     id_venta INT NOT NULL,
-
     id_producto INT NOT NULL,
-
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_detalle_venta
-        FOREIGN KEY (id_venta)
-        REFERENCES ventas(id_venta)
-        ON DELETE CASCADE,
-
-    CONSTRAINT fk_detalle_producto
-        FOREIGN KEY (id_producto)
-        REFERENCES productos(id_producto)
-        ON DELETE CASCADE,
-
-    CONSTRAINT chk_detalle_cantidad
-        CHECK (cantidad > 0)
-);
-
-
-
+    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_venta) REFERENCES ventas(id_venta) ON DELETE CASCADE,
+    FOREIGN KEY (id_producto) REFERENCES productos(id_producto) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+ 
+-- --------------------------------------------------------
+-- 7. PAGOS (quien confirmo el pago, metodo y monto)
+-- --------------------------------------------------------
+CREATE TABLE pagos (
+    id_pago INT AUTO_INCREMENT PRIMARY KEY,
+    monto DECIMAL(10, 2) NOT NULL CHECK (monto > 0),
+    metodo ENUM('efectivo', 'qr', 'transferencia') NOT NULL,
+    fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
+    id_venta INT NOT NULL,
+    id_usuario INT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_venta) REFERENCES ventas(id_venta) ON DELETE CASCADE,
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE SET NULL
+) ENGINE=InnoDB;
+ 
+-- --------------------------------------------------------
+-- 8. MOVIMIENTOS_INVENTARIO (auditoria del stock)
+-- --------------------------------------------------------
 CREATE TABLE movimientos_inventario (
     id_movimiento INT AUTO_INCREMENT PRIMARY KEY,
-
-    tipo ENUM(
-        'entrada',
-        'salida',
-        'ajuste'
-    ) NOT NULL,
-
+    tipo ENUM('entrada', 'salida', 'ajuste') NOT NULL,
     cantidad INT NOT NULL,
-
     fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
-
     id_producto INT NOT NULL,
-
-    id_usuario INT,
-
+    id_usuario INT NULL,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_movimiento_producto
-        FOREIGN KEY (id_producto)
-        REFERENCES productos(id_producto)
-        ON DELETE CASCADE,
-
-    CONSTRAINT fk_movimiento_usuario
-        FOREIGN KEY (id_usuario)
-        REFERENCES usuarios(id_usuario)
-        ON DELETE SET NULL
-);
-
-
-INSERT INTO categorias (
-    nombre,
-    descripcion
-) VALUES
-
-(
-    'Sérums',
-    'Concentrados faciales con principios activos para necesidades específicas de la piel.'
-),
-
-(
-    'Protectores Solares',
-    'Cremas y geles de alta protección contra rayos UV, UVA y UVB.'
-),
-
-(
-    'Limpiadores',
-    'Geles y espumas limpiadoras para eliminar impurezas sin resecar el rostro.'
-),
-
-(
-    'Hidratantes',
-    'Cremas y geles para mantener la barrera cutánea hidratada.'
-);
-
-
-
-
-INSERT INTO usuarios (
-    nombre,
-    correo,
-    contrasena_cifrada,
-    rol
-) VALUES
-
-(
-    'Nicole Velasquez',
-    'nicole@skinkernube.com',
-    '$2b$10$EjemploHashContrasenaAdmin123',
-    'administrador'
-);
-
-
-
-
-INSERT INTO productos (
-    nombre,
-    descripcion,
-    ingredientes,
-    modo_uso,
-    etiqueta,
-    imagen,
-    precio,
-    stock,
-    stock_minimo,
-    id_categoria
-) VALUES
-
-(
-    'Sérum Facial con Vitamina C 30ml',
-
-    'Ilumina y unifica el tono de la piel, antioxidante potente.',
-
-    'Vitamina C, ácido ascórbico y antioxidantes.',
-
-    'Aplicar unas gotas sobre el rostro limpio por la mañana y noche.',
-
-    'DESTACADO',
-
-    NULL,
-
-    120.00,
-    15,
-    4,
-    1
-),
-
-(
-    'Sérum Ácido Hialurónico',
-
-    'Hidratación profunda y efecto relleno de líneas de expresión.',
-
-    'Ácido hialurónico y agentes hidratantes.',
-
-    'Aplicar sobre el rostro limpio antes de la crema hidratante.',
-
-    'NUEVO',
-
-    NULL,
-
-    135.00,
-    20,
-    5,
-    1
-),
-
-(
-    'Protector Solar Toque Seco SPF 50+',
-
-    'Protección solar avanzada sin sensación grasosa, ideal para piel mixta/grasa.',
-
-    'Filtros solares UVA y UVB.',
-
-    'Aplicar generosamente sobre el rostro 15 minutos antes de la exposición solar.',
-
-    'POPULAR',
-
-    NULL,
-
-    95.00,
-    30,
-    8,
-    2
-),
-
-(
-    'Limpiador Facial Suave con Ceramidas',
-
-    'Limpia profundamente respetando la barrera natural de la piel.',
-
-    'Ceramidas, agentes limpiadores suaves y humectantes.',
-
-    'Aplicar sobre el rostro húmedo, masajear suavemente y enjuagar.',
-
-    NULL,
-
-    NULL,
-
-    80.00,
-    12,
-    3,
-    3
-),
-
-(
-    'Crema Hidratante Reparadora',
-
-    'Nutrición intensiva para pieles secas o deshidratadas.',
-
-    'Ceramidas, ácido hialurónico y agentes emolientes.',
-
-    'Aplicar una cantidad adecuada sobre el rostro limpio.',
-
-    'RECOMENDADO',
-
-    NULL,
-
-    110.00,
-    18,
-    5,
-    4
-);
-
-
-
-INSERT INTO clientes (
-    nombre,
-    telefono,
-    correo
-) VALUES
-
-(
-    'Ana Gomez',
-    '+591 71234567',
-    'ana.gomez@gmail.com'
-),
-
-(
-    'Luis Perez',
-    '+591 79876543',
-    'luis.perez@hotmail.com'
-);
-
-
-
-
-INSERT INTO ventas (
-    total,
-    envio,
-    estado,
-    id_cliente,
-    id_usuario
-) VALUES
-(
-    215.00,
-    0.00,
-    'registrada',
-    1,
-    1
-);
-
-
-
-INSERT INTO detalle_ventas (
-    cantidad,
-    precio_unitario,
-    subtotal,
-    id_venta,
-    id_producto
-) VALUES
-
-(
-    1,
-    120.00,
-    120.00,
-    1,
-    1
-),
-
-(
-    1,
-    95.00,
-    95.00,
-    1,
-    3
-);
-
-
-
-INSERT INTO movimientos_inventario (
-    tipo,
-    cantidad,
-    id_producto,
-    id_usuario
-) VALUES
-
-(
-    'entrada',
-    15,
-    1,
-    1
-),
-
-(
-    'entrada',
-    20,
-    2,
-    1
-),
-
-(
-    'entrada',
-    30,
-    3,
-    1
-),
-
-(
-    'entrada',
-    12,
-    4,
-    1
-),
-
-(
-    'entrada',
-    18,
-    5,
-    1
-),
-
-(
-    'salida',
-    1,
-    1,
-    1
-),
-
-(
-    'salida',
-    1,
-    3,
-    1
-);
-
-
-
-
-
-
-SELECT
-    id_producto,
-    nombre,
-    precio,
-    stock,
-    stock_minimo
-FROM productos
-WHERE precio <= 0
-   OR precio > 5000;
-
-
-
-SELECT
-    id_producto,
-    nombre,
-    stock,
-    stock_minimo
-FROM productos
-WHERE stock <= stock_minimo;
-
-
-
-
-SELECT
-    p.id_producto,
-    p.nombre AS producto,
-    c.nombre AS categoria,
-    p.precio,
-    p.stock,
-    p.etiqueta
-FROM productos p
-LEFT JOIN categorias c
-    ON p.id_categoria = c.id_categoria;
-
-
-
-
-SELECT
-    v.id_venta,
-    v.fecha,
-    c.nombre AS cliente,
-    u.nombre AS vendedor,
-    v.total,
-    v.envio,
-    v.estado
-FROM ventas v
-LEFT JOIN clientes c
-    ON v.id_cliente = c.id_cliente
-LEFT JOIN usuarios u
-    ON v.id_usuario = u.id_usuario;
-
-
-
-SELECT
-    v.id_venta,
-    v.fecha,
-    c.nombre AS cliente,
-    p.nombre AS producto,
-    dv.cantidad,
-    dv.precio_unitario,
-    dv.subtotal
-FROM detalle_ventas dv
-INNER JOIN ventas v
-    ON dv.id_venta = v.id_venta
-INNER JOIN productos p
-    ON dv.id_producto = p.id_producto
-LEFT JOIN clientes c
-    ON v.id_cliente = c.id_cliente;
-
-
+    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_producto) REFERENCES productos(id_producto) ON DELETE RESTRICT,
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE SET NULL
+) ENGINE=InnoDB;
+ 
+-- --------------------------------------------------------
+-- 9. NOTIFICACIONES (avisos al administrador; se usa en el Paso 5)
+-- --------------------------------------------------------
+CREATE TABLE notificaciones (
+    id_notificacion INT AUTO_INCREMENT PRIMARY KEY,
+    tipo VARCHAR(30) NOT NULL,
+    mensaje VARCHAR(255) NOT NULL,
+    leida BOOLEAN NOT NULL DEFAULT FALSE,
+    id_venta INT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_venta) REFERENCES ventas(id_venta) ON DELETE CASCADE,
+    INDEX idx_notificaciones_leida (leida)
+) ENGINE=InnoDB;
+ 
+-- ========================================================
+-- DATOS DE EJEMPLO (los costos son de prueba: ajustalos a los reales)
+-- ========================================================
+INSERT INTO categorias (nombre, descripcion) VALUES
+('Sérums', 'Concentrados faciales con principios activos para necesidades específicas de la piel.'),
+('Protectores Solares', 'Cremas y geles de alta protección contra rayos UV UVA y UVB.'),
+('Limpiadores', 'Geles y espumas limpiadoras para eliminar impurezas sin resecar el rostro.'),
+('Hidratantes', 'Cremas y geles para mantener la barrera cutánea hidratada.');
+ 
+INSERT INTO productos (nombre, descripcion, precio, costo, stock, stock_minimo, id_categoria) VALUES
+('Sérum Facial con Vitamina C 30ml', 'Ilumina y unifica el tono de la piel, antioxidante potente.', 120.00, 70.00, 15, 4, 1),
+('Sérum Ácido Hialurónico', 'Hidratación profunda y efecto relleno de líneas de expresión.', 135.00, 80.00, 20, 5, 1),
+('Protector Solar Toque Seco SPF 50+', 'Protección solar avanzada sin sensación grasosa, ideal para piel mixta/grasa.', 95.00, 55.00, 30, 8, 2),
+('Limpiador Facial Suave con Ceramidas', 'Limpia profundamente respetando la barrera natural de la piel.', 80.00, 45.00, 12, 3, 3),
+('Crema Hidratante Reparadora', 'Nutrición intensiva para pieles secas o deshidratadas.', 110.00, 65.00, 18, 5, 4);
+ 
+-- Ana tiene carnet (sirve para probar el autorrelleno); Luis no.
+INSERT INTO clientes (nombre, carnet, telefono, correo, direccion) VALUES
+('Ana Gomez', '4567890', '+591 71234567', 'ana.gomez@gmail.com', 'Av. América 123, Cochabamba'),
+('Luis Perez', NULL, '+591 79876543', 'luis.perez@hotmail.com', NULL);
+
+ALTER TABLE ventas
+  ADD COLUMN comprobante_pago VARCHAR(500) NULL AFTER imagen_entrega,
+  ADD COLUMN mensaje_pago VARCHAR(255) NULL AFTER comprobante_pago;
+-- ========================================================
+-- USUARIOS: no se insertan aqui a proposito (un hash de ejemplo no
+-- permite iniciar sesion). Despues de ejecutar este archivo, desde
+-- la carpeta backend/ ejecuta:
+--     node scripts/crearAdmin.js
+--     node scripts/crearVendedor.js
+-- Los clientes se crean desde la pantalla de registro.
+-- ========================================================

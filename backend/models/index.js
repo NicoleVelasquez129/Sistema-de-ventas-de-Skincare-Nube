@@ -4,6 +4,7 @@ const Cliente = require("./Cliente");
 const Venta = require("./Venta");
 const DetalleVenta = require("./DetalleVenta");
 const Usuario = require("./Usuario");
+const Pago = require("./Pago");
 
 // Relaciones
 Categoria.hasMany(Producto, { foreignKey: "id_categoria" });
@@ -14,6 +15,7 @@ Cliente.hasMany(Venta, { foreignKey: "id_cliente" });
 
 Venta.belongsTo(Usuario, { foreignKey: "id_usuario", as: "usuario" });
 Usuario.hasMany(Venta, { foreignKey: "id_usuario", as: "ventas" });
+Venta.belongsTo(Usuario, { foreignKey: "id_vendedor", as: "vendedor" });
 
 // Relación DetalleVenta -> Venta (Si se borra la venta, se borra su detalle en cascada)
 Venta.hasMany(DetalleVenta, { foreignKey: "id_venta", onDelete: "CASCADE", as: "detalles" });
@@ -23,11 +25,17 @@ DetalleVenta.belongsTo(Venta, { foreignKey: "id_venta", as: "venta" });
 Producto.hasMany(DetalleVenta, { foreignKey: "id_producto", onDelete: "CASCADE" });
 DetalleVenta.belongsTo(Producto, { foreignKey: "id_producto" });
 
+// Relación Pago -> Venta (Si se borra la venta, se borra su pago en cascada)
+Venta.hasMany(Pago, { foreignKey: "id_venta", onDelete: "CASCADE", as: "pagos" });
+Pago.belongsTo(Venta, { foreignKey: "id_venta" });
+Pago.belongsTo(Usuario, { foreignKey: "id_usuario", as: "confirmadoPor" });
+
 module.exports = {
     Categoria,
     Producto,
     Cliente,
     Venta,
     DetalleVenta,
-    Usuario
+    Usuario,
+    Pago
 };

@@ -5,12 +5,16 @@ import { Catalogo } from './pages/Catalogo';
 import { Ventas } from './pages/Ventas';
 import { Gestion } from './pages/Gestion';
 import { Login } from './pages/Login';
+import { MisPedidos } from './pages/MisPedidos';
+
 import { RestablecerContrasena } from './pages/RestablecerContrasena';
 import { UIFeedback } from './components/UIFeedback';
 import { Canastita } from './components/Canastita.tsx';
 import { obtenerUsuarioGuardado, cerrarSesion } from './services/authService';
 import type { UsuarioSesion } from './services/authService';
 import type { CartItem, Producto } from './interfaces';
+import { Vender } from './pages/Vender';
+import { PedidosEnLinea } from './pages/PedidosEnLinea';
 
 function App() {
   const [usuario, setUsuario] = useState<UsuarioSesion | null>(obtenerUsuarioGuardado());
@@ -21,6 +25,7 @@ function App() {
   const [carritoAbierto, setCarritoAbierto] = useState(false);
 
   const esAdmin = usuario?.rol === 'administrador';
+  const puedeVender = usuario?.rol === 'vendedor';
   const subtotal = carrito.reduce((total, item) => total + Number(item.producto.precio) * item.cantidad, 0);
   const cantidadEnCarrito = carrito.reduce((total, item) => total + item.cantidad, 0);
 
@@ -109,11 +114,14 @@ function App() {
             <Route path="/" element={<Catalogo onAddToCart={agregarAlCarrito} />} />
             <Route path="/login" element={<Login onLogin={iniciarSesion} />} />
             <Route path="/restablecer" element={<RestablecerContrasena />} />
+            <Route path="/mis-pedidos" element={usuario ? <MisPedidos /> : <Navigate to="/login" replace />} />
             <Route path="/ventas" element={esAdmin ? <Ventas /> : <Navigate to="/login" replace />} />
             <Route
               path="/gestion"
               element={esAdmin ? <Gestion onMostrarMensaje={mostrarMensaje} onSetCargando={setCargando} /> : <Navigate to="/login" replace />}
             />
+            <Route path="/vender" element={puedeVender ? <Vender /> : <Navigate to="/login" replace />} />
+            <Route path="/pedidos-en-linea" element={puedeVender ? <PedidosEnLinea /> : <Navigate to="/login" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

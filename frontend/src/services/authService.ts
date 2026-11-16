@@ -6,7 +6,7 @@ export interface UsuarioSesion {
   id_usuario: number;
   nombre: string;
   correo: string;
-  rol: 'administrador' | 'cliente';
+  rol: 'administrador' | 'vendedor' | 'cliente';
 }
 
 const tokenVigente = (token: string): boolean => {
@@ -52,6 +52,7 @@ export const loginAPI = async (correo: string, contrasena: string) => {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ correo, contrasena }),
+    credentials: 'include'
   });
   const data = await response.json();
   if (data.success) {
@@ -71,6 +72,7 @@ export const registroAPI = async (datos: { nombre: string; correo: string; contr
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(datos),
+    credentials: 'include'
   });
   const data = await response.json();
   if (data.success) {
@@ -85,6 +87,7 @@ export const olvideContrasenaAPI = async (correo: string) => {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ correo }),
+    credentials: 'include'
   });
   const data = await response.json();
   return data.success

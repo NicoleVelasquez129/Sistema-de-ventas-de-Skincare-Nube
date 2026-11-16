@@ -34,12 +34,23 @@ export const Navbar: React.FC<NavbarProps> = ({ cartCount, onOpenCart, usuario, 
             <>
               <Link to="/ventas" className="text-sm font-medium text-slate-600 hover:text-slate-900">Ventas</Link>
               <Link to="/gestion" className="text-sm font-medium text-slate-600 hover:text-slate-900">Gestión</Link>
+
             </>
+          )}
+          {usuario?.rol === 'vendedor' && (
+            <>
+              <Link to="/vender" className="text-sm font-medium text-slate-600 hover:text-slate-900">Vender</Link>
+              <Link to="/pedidos-en-linea" className="text-sm font-medium text-slate-600 hover:text-slate-900">Pedidos en línea</Link>
+            </>
+          )}
+          {usuario?.rol === 'cliente' && (
+            <Link to="/mis-pedidos" className="text-sm font-medium text-slate-600 hover:text-slate-900">Mis pedidos</Link>
           )}
           {usuario ? (
             <button onClick={onLogout} className="text-sm font-medium text-slate-600 hover:text-slate-900">Salir</button>
           ) : (
             <Link to="/login" className="text-sm font-medium text-slate-600 hover:text-slate-900">Iniciar sesión</Link>
+            
           )}
           {esCatalogo && (
             <button

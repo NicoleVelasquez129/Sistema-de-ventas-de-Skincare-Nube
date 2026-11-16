@@ -15,8 +15,9 @@ const PORT = process.env.PORT || 3000;
 
 // Middlewares transversales
 app.use(helmet());
-app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:5173" }));
+app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:5173", credentials: true }));
 app.use(express.json());
+
 
 // Imágenes subidas por el administrador (se permite mostrarlas desde el frontend, que corre en otro puerto)
 app.use("/uploads", (req, res, next) => {
@@ -31,6 +32,7 @@ const categoryRoutes = require("./routes/categoryRoutes");
 const clientRoutes = require("./routes/clientRoutes");
 const userRoutes = require("./routes/userRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
+const reportRoutes = require("./routes/reportRoutes");
 
 // Ruta raíz de documentación básica de la API
 app.get("/", (req, res) => {
@@ -52,6 +54,7 @@ app.get("/", (req, res) => {
             "GET /api/usuarios": "Lista los usuarios del sistema (solo administrador)",
             "POST /api/auth/login": "Inicia sesión y devuelve un token de acceso",
             "POST /api/upload": "Sube una imagen de producto (solo administrador)"
+            
         }
     });
 });
@@ -64,6 +67,7 @@ app.use("/api/categorias", categoryRoutes);
 app.use("/api/clientes", clientRoutes);
 app.use("/api/usuarios", userRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/reportes", reportRoutes);
 
 // Conexión a la Base de Datos y arranque del Servidor
 async function iniciarServidor() {

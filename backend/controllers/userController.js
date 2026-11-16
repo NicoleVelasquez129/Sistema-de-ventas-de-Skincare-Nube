@@ -1,4 +1,7 @@
-const { obtenerUsuariosService, registrarUsuarioService } = require("../services/userService");
+const {
+    obtenerUsuariosService, registrarUsuarioService, obtenerVendedoresService,
+    crearVendedorService, cambiarActivoVendedorService, ventasDeVendedorService
+} = require("../services/userService");
 
 const obtenerUsuarios = async (req, res) => {
     try {
@@ -18,4 +21,35 @@ const registrarUsuario = async (req, res) => {
     }
 };
 
-module.exports = { obtenerUsuarios, registrarUsuario };
+const responder = (res, error) =>
+    res.status(error.status || 400).json({ success: false, mensaje: error.message, error: error.message });
+
+const obtenerVendedores = async (req, res) => {
+    try {
+        const data = await obtenerVendedoresService();
+        return res.status(200).json({ success: true, total: data.length, data });
+    } catch (error) { return responder(res, error); }
+};
+
+const crearVendedor = async (req, res) => {
+    try {
+        const data = await crearVendedorService(req.body);
+        return res.status(201).json({ success: true, mensaje: "Vendedor creado", data });
+    } catch (error) { return responder(res, error); }
+};
+
+const cambiarActivoVendedor = async (req, res) => {
+    try {
+        const data = await cambiarActivoVendedorService(req.params.id, req.body?.activo);
+        return res.status(200).json({ success: true, mensaje: "Vendedor actualizado", data });
+    } catch (error) { return responder(res, error); }
+};
+
+const ventasDeVendedor = async (req, res) => {
+    try {
+        const data = await ventasDeVendedorService(req.params.id);
+        return res.status(200).json({ success: true, total: data.length, data });
+    } catch (error) { return responder(res, error); }
+};
+
+module.exports = { obtenerUsuarios, registrarUsuario, obtenerVendedores, crearVendedor, cambiarActivoVendedor, ventasDeVendedor };

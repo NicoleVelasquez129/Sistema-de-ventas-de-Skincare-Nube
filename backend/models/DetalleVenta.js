@@ -15,6 +15,11 @@ const DetalleVenta = sequelize.define("DetalleVenta", {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false
     },
+    costo_unitario: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0
+    },
     subtotal: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false

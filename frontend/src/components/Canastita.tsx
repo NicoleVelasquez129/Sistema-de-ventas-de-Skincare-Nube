@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { CartItem } from '../interfaces';
-import { descargarFacturaAPI, registrarVentaAPI, urlImagen } from '../services/apiService';
+import { registrarVentaAPI, subirComprobanteAPI, urlImagen } from '../services/apiService';
+import { QrPagoFalso } from './QrPagoFalso';
 import { obtenerToken, obtenerUsuarioGuardado } from '../services/authService';
 
 const ENVIO_GRATIS_DESDE = 100;
@@ -34,7 +35,16 @@ export const Canastita: React.FC<CanastitaProps> = ({
   const [ventaId, setVentaId] = useState<number | null>(null);
   const [errorCompra, setErrorCompra] = useState('');
   const [procesando, setProcesando] = useState(false);
-  const [descargando, setDescargando] = useState(false);
+
+  const [conEnvio, setConEnvio] = useState(false);
+  const [direccion, setDireccion] = useState('');
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [buscandoGps, setBuscandoGps] = useState(false);
+  const [errorGps, setErrorGps] = useState('');
+  const [totalPagado, setTotalPagado] = useState(0);
+  const [archivo, setArchivo] = useState<File | null>(null);
+  const [subiendo, setSubiendo] = useState(false);
+  const [comprobanteEnviado, setComprobanteEnviado] = useState(false);
 
   useEffect(() => {
     if (!abierto) return;
@@ -54,15 +64,37 @@ export const Canastita: React.FC<CanastitaProps> = ({
   const cantidadTotal = items.reduce((total, item) => total + item.cantidad, 0);
   const vacia = items.length === 0;
   const envioGratis = subtotal >= ENVIO_GRATIS_DESDE;
-  const envio = vacia || envioGratis ? 0 : COSTO_ENVIO;
+  const envio = vacia || !conEnvio || envioGratis ? 0 : COSTO_ENVIO;
   const total = subtotal + envio;
   const faltaParaGratis = Math.max(0, ENVIO_GRATIS_DESDE - subtotal);
   const progreso = Math.min(100, (subtotal / ENVIO_GRATIS_DESDE) * 100);
 
   const cerrarCanastita = () => {
+    setArchivo(null);
+    setComprobanteEnviado(false);
     setVentaId(null);
     setErrorCompra('');
     onCerrar();
+  };
+
+  const usarMiUbicacion = () => {
+    if (!navigator.geolocation) {
+      setErrorGps('Tu navegador no permite obtener la ubicación.');
+      return;
+    }
+    setBuscandoGps(true);
+    setErrorGps('');
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setCoords({ lat: Number(pos.coords.latitude.toFixed(7)), lng: Number(pos.coords.longitude.toFixed(7)) });
+        setBuscandoGps(false);
+      },
+      () => {
+        setErrorGps('No se pudo obtener tu ubicación. Revisa el permiso del navegador o escribe tu dirección.');
+        setBuscandoGps(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   };
 
   const handleProcederPago = async () => {
@@ -75,15 +107,25 @@ export const Canastita: React.FC<CanastitaProps> = ({
       return;
     }
 
-    setProcesando(true);
     setErrorCompra('');
+    if (!direccion.trim() && !coords) {
+      setErrorCompra('Para continuar con el pago escribe tu dirección o usa tu ubicación actual (puedes poner ambas).');
+      return;
+    }
+
+    setProcesando(true);
     try {
       const response = await registrarVentaAPI({
         items: items.map(({ producto, cantidad }) => ({
           id_producto: producto.id_producto,
           cantidad,
         })),
+        con_envio: conEnvio,
+        direccion_entrega: direccion.trim() || undefined,
+        ubicacion_lat: coords ? coords.lat : undefined,
+        ubicacion_lng: coords ? coords.lng : undefined,
       });
+      
       if (!response.success) {
         throw new Error(response.error || response.mensaje || 'No se pudo procesar la compra.');
       }
@@ -94,6 +136,9 @@ export const Canastita: React.FC<CanastitaProps> = ({
       }
 
       setVentaId(idRegistrado);
+      setTotalPagado(Number(response.data?.total) || total);
+      setArchivo(null);
+      setComprobanteEnviado(false);
       onVentaCompletada();
       localStorage.removeItem('carrito_pendiente');
     } catch (error) {
@@ -103,26 +148,26 @@ export const Canastita: React.FC<CanastitaProps> = ({
     }
   };
 
-  const descargarPDF = async (idVenta: number) => {
-    setDescargando(true);
+  const enviarComprobante = async () => {
+    if (!ventaId || !archivo) return;
+    setSubiendo(true);
     setErrorCompra('');
     try {
-      const blob = await descargarFacturaAPI(idVenta);
-      const url = URL.createObjectURL(blob);
-      const enlace = document.createElement('a');
-      enlace.href = url;
-      enlace.download = `Factura_${idVenta}.pdf`;
-      document.body.appendChild(enlace);
-      enlace.click();
-      enlace.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      await subirComprobanteAPI(ventaId, archivo);
+      setComprobanteEnviado(true);
     } catch (error) {
-      setErrorCompra(error instanceof Error ? error.message : 'No se pudo descargar la factura PDF.');
+      setErrorCompra(error instanceof Error ? error.message : 'No se pudo enviar el comprobante.');
     } finally {
-      setDescargando(false);
+      setSubiendo(false);
     }
   };
 
+  const irAMisPedidos = () => {
+    cerrarCanastita();
+    navigate('/mis-pedidos');
+  };
+
+  
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-[2px]" onClick={cerrarCanastita}>
       <aside
@@ -157,18 +202,48 @@ export const Canastita: React.FC<CanastitaProps> = ({
           </button>
         </header>
 
+        <div className="flex flex-1 flex-col overflow-y-auto">
         {/* Lista de productos */}
         {ventaId ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-4 px-8 text-center">
-            <p role="status" className="font-serif text-xl font-bold text-stone-900">¡Compra registrada!</p>
-            <p className="text-sm text-stone-600">Tu número de pedido es <span className="font-semibold">#{ventaId}</span>.</p>
-            <button
-              type="button"
-              onClick={() => descargarPDF(ventaId)}
-              disabled={descargando}
-              className="rounded-xl bg-stone-900 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-stone-800 disabled:opacity-60"
-            >
-              {descargando ? 'Descargando…' : 'Descargar factura PDF'}
+          <div className="flex flex-1 flex-col items-center gap-4 px-6 py-8 text-center">
+            <p role="status" className="font-serif text-xl font-bold text-stone-900">¡Pedido registrado!</p>
+            <p className="text-sm text-stone-600">
+              Pedido <span className="font-semibold">#{ventaId}</span> · Total a pagar{' '}
+              <span className="font-semibold">{dinero(totalPagado)}</span>
+            </p>
+            <QrPagoFalso semilla={ventaId} />
+            <p className="text-xs text-stone-500">
+              Este QR es ilustrativo y no procesa pagos. Realiza el pago por el canal indicado por la tienda y luego sube tu comprobante.
+              Tu pedido se prepara cuando el vendedor confirme el pago.
+            </p>
+
+            {comprobanteEnviado ? (
+              <p role="status" className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+                Comprobante enviado. El vendedor lo revisará.
+              </p>
+            ) : (
+              <div className="w-full space-y-2">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  onChange={e => setArchivo(e.target.files?.[0] ?? null)}
+                  className="w-full text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={enviarComprobante}
+                  disabled={!archivo || subiendo}
+                  className="w-full rounded-xl bg-stone-900 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-stone-800 disabled:opacity-50"
+                >
+                  {subiendo ? 'Enviando…' : 'Enviar comprobante'}
+                </button>
+              </div>
+            )}
+
+            {errorCompra && <p role="alert" className="text-sm text-rose-700">{errorCompra}</p>}
+
+            <button type="button" onClick={irAMisPedidos} className="text-sm font-semibold text-stone-800 underline">
+              Ver mis pedidos
             </button>
             <button type="button" onClick={cerrarCanastita} className="text-sm font-semibold text-stone-600 hover:underline">
               Seguir viendo productos
@@ -190,7 +265,7 @@ export const Canastita: React.FC<CanastitaProps> = ({
             </button>
           </div>
         ) : (
-          <ul className="flex-1 space-y-4 overflow-y-auto px-6 py-6">
+          <ul className="flex-1 space-y-4 px-6 py-6">
             {items.map(item => {
               const { producto, cantidad } = item;
               const precio = Number(producto.precio);
@@ -264,7 +339,7 @@ export const Canastita: React.FC<CanastitaProps> = ({
 
         {/* Resumen */}
         {!vacia && !ventaId && (
-          <footer className="border-t border-stone-200 bg-nube-crema px-6 pb-6 pt-5">
+          <footer className="shrink-0 border-t border-stone-200 bg-nube-crema px-6 pb-6 pt-5">
             {errorCompra && (
               <p role="alert" className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
                 {errorCompra}
@@ -287,6 +362,25 @@ export const Canastita: React.FC<CanastitaProps> = ({
                 </div>
               </div>
             )}
+
+            <div className="mb-5 space-y-3">
+              <label className="flex items-center justify-between rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm font-semibold text-stone-700">
+                Solicitar envío a domicilio
+                <input type="checkbox" checked={conEnvio} onChange={e => setConEnvio(e.target.checked)} className="h-4 w-4" />
+              </label>
+
+              <div className="space-y-2 rounded-xl border border-stone-200 bg-white p-3">
+                <label htmlFor="c-dir" className="block text-xs font-semibold text-stone-600">Dirección de entrega (obligatoria)</label>
+                <input id="c-dir" maxLength={255} value={direccion} onChange={e => setDireccion(e.target.value)}
+                  className="w-full rounded-xl border border-stone-200 px-3 py-2 text-sm" />
+                <button type="button" onClick={usarMiUbicacion} disabled={buscandoGps}
+                  className="w-full rounded-xl bg-stone-100 px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-200 disabled:opacity-60">
+                  {buscandoGps ? 'Buscando ubicación…' : '📍 Usar mi ubicación actual'}
+                </button>
+                {coords && <p className="text-xs text-emerald-700">Ubicación capturada: Lat {coords.lat}, Lng {coords.lng}</p>}
+                {errorGps && <p role="alert" className="text-xs text-rose-700">{errorGps}</p>}
+              </div>
+            </div>
 
             <dl className="space-y-2 text-sm text-stone-600">
               <div className="flex justify-between">
@@ -316,6 +410,7 @@ export const Canastita: React.FC<CanastitaProps> = ({
             </button>
           </footer>
         )}
+        </div>
       </aside>
     </div>
   );

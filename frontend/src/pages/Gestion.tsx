@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ProductosAdmin } from '../components/admin/ProductosAdmin';
 import { CategoriasAdmin } from '../components/admin/CategoriasAdmin';
+import { VendedoresAdmin } from '../components/admin/VendedoresAdmin';
+import { ReportesAdmin } from '../components/admin/ReportesAdmin';
 
 interface GestionProps {
   onMostrarMensaje: (msg: string, esError: boolean) => void;
@@ -10,16 +12,18 @@ interface GestionProps {
 const PESTANAS = [
   { id: 'productos', texto: 'Productos' },
   { id: 'categorias', texto: 'Categorías' },
+  { id: 'vendedores', texto: 'Vendedores' },
+  { id: 'reportes', texto: 'Reportes' },
 ] as const;
 
 export const Gestion: React.FC<GestionProps> = ({ onMostrarMensaje, onSetCargando }) => {
-  const [pestana, setPestana] = useState<'productos' | 'categorias'>('productos');
+  const [pestana, setPestana] = useState<'productos' | 'categorias' | 'vendedores' | 'reportes'>('productos');
 
   return (
     <div className="fade-in mx-auto max-w-6xl px-4 py-8 sm:px-8">
       <div className="mb-6">
         <h2 className="font-serif text-3xl font-bold text-stone-900">Panel de gestión</h2>
-        <p className="text-sm text-stone-500">Administra tu catálogo y tus categorías.</p>
+        <p className="text-sm text-stone-500">Administra tu catálogo, tus categorías, vendedores y reportes.</p>
       </div>
 
       <div role="tablist" className="mb-8 flex gap-2 overflow-x-auto border-b border-stone-200">
@@ -41,6 +45,8 @@ export const Gestion: React.FC<GestionProps> = ({ onMostrarMensaje, onSetCargand
 
       {pestana === 'productos' && <ProductosAdmin onMostrarMensaje={onMostrarMensaje} onSetCargando={onSetCargando} />}
       {pestana === 'categorias' && <CategoriasAdmin onMostrarMensaje={onMostrarMensaje} onSetCargando={onSetCargando} />}
+      {pestana === 'vendedores' && <VendedoresAdmin onMostrarMensaje={onMostrarMensaje} onSetCargando={onSetCargando} />}
+      {pestana === 'reportes' && <ReportesAdmin onMostrarMensaje={onMostrarMensaje} onSetCargando={onSetCargando} />}
     </div>
   );
 };

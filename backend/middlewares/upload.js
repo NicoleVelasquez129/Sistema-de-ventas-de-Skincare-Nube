@@ -38,4 +38,31 @@ const subirImagen = (req, res, next) => {
     });
 };
 
-module.exports = { subirImagen };
+const EXT_COMPROBANTE = { ...EXTENSIONES, "application/pdf": ".pdf" };
+
+const uploadComprobante = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => cb(null, CARPETA_UPLOADS),
+        filename: (req, file, cb) => {
+            cb(null, `comprobante-${Date.now()}-${crypto.randomBytes(6).toString("hex")}${EXT_COMPROBANTE[file.mimetype]}`);
+        }
+    }),
+    limits: { fileSize: MAX_BYTES, files: 1 },
+    fileFilter: (req, file, cb) => {
+        if (EXT_COMPROBANTE[file.mimetype]) return cb(null, true);
+        cb(new Error("El comprobante debe ser una imagen JPG, PNG, WEBP o un PDF."));
+    }
+});
+
+// Campo del formulario: "comprobante"
+const subirComprobante = (req, res, next) => {
+    uploadComprobante.single("comprobante")(req, res, (err) => {
+        if (err) {
+            const mensaje = err.code === "LIMIT_FILE_SIZE" ? "El comprobante supera el máximo de 5 MB." : err.message;
+            return res.status(400).json({ success: false, mensaje: "Error al subir el comprobante", error: mensaje });
+        }
+        next();
+    });
+};
+
+module.exports = { subirImagen,subirComprobante };

@@ -161,11 +161,26 @@ const obtenerProductosStockBajoService = async () => {
     });
 };
 
+const moverProductosService = async (ids, idCategoria) => {
+    if (!Array.isArray(ids) || ids.length === 0 || ids.length > 500 ||
+        ids.some(i => !Number.isInteger(Number(i)) || Number(i) <= 0)) {
+        throw new Error("Elige al menos un producto válido para mover.");
+    }
+    const categoria = await Categoria.findByPk(idCategoria);
+    if (!categoria) throw new Error("La categoría destino no existe.");
+    const [movidos] = await Producto.update(
+        { id_categoria: categoria.id_categoria },
+        { where: { id_producto: { [Op.in]: ids.map(Number) } } }
+    );
+    return { movidos, categoria: categoria.nombre };
+};
+
 module.exports = {
     obtenerProductosService,
     crearProductoService,
     actualizarProductoService,
     desactivarProductoService,
     eliminarProductoDefinitivoService,
-    obtenerProductosStockBajoService
+    obtenerProductosStockBajoService,
+    moverProductosService
 };

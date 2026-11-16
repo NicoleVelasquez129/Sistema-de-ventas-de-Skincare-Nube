@@ -42,7 +42,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   const entrar = (usuario: UsuarioSesion) => {
     onLogin(usuario);
-    navigate(usuario.rol === 'administrador' ? '/ventas' : destinoPrevio || '/');
+    navigate(usuario.rol === 'administrador' ? '/ventas' : usuario.rol === 'vendedor' ? '/vender' : destinoPrevio || '/');
   };
 
   const iniciarSesion = async (e: React.FormEvent) => {
@@ -69,13 +69,14 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError('');
     if (!nombre.trim()) return setError('Escribe tu nombre.');
     if (!REGEX_CORREO.test(correo.trim())) return setError('Ingresa un correo electrónico válido.');
+    if (!telefono.trim()) return setError('Escribe tu celular.');
     if (contrasena.length < 8 || !/[A-Za-z]/.test(contrasena) || !/\d/.test(contrasena)) {
       return setError('La contraseña debe tener al menos 8 caracteres, con letras y números.');
     }
     if (contrasena !== confirmar) return setError('Las contraseñas no coinciden.');
     setProcesando(true);
     try {
-      const res = await registroAPI({ nombre, correo, contrasena, telefono: telefono.trim() || undefined });
+      const res = await registroAPI({ nombre, correo, contrasena, telefono: telefono.trim() });
       if (res.success && res.usuario) entrar(res.usuario);
       else setError(res.error || 'No se pudo crear la cuenta.');
     } catch {

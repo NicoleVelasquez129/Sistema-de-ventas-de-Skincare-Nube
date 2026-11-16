@@ -109,7 +109,7 @@ export const Ventas: React.FC = () => {
   }, [ahora, periodo, mesSeleccionado, anioSeleccionado, desde, hasta]);
 
   const ventasFiltradas = useMemo(() => ventas.filter(venta => {
-    if (venta.estado === 'anulada') return false;
+    if (venta.estado === 'anulada' || venta.estado_pedido === 'pendiente') return false;
     const fecha = new Date(venta.fecha);
     return fecha >= periodoActual.inicio && fecha <= periodoActual.fin &&
       (categoriaId === 'todas' || detallesDeVenta(venta, categoriaId).length > 0);
@@ -191,7 +191,7 @@ export const Ventas: React.FC = () => {
   const maximoGrafica = Math.max(...puntosGrafico.map(punto => punto.ingresos), 1);
   const tarjetas = [
     { etiqueta: 'Ingresos', valor: moneda.format(ingresos), detalle: categoriaId === 'todas' ? 'Incluye el total registrado' : 'Ventas de la categoría seleccionada', color: 'text-emerald-700' },
-    { etiqueta: 'Ventas', valor: String(ventasFiltradas.length), detalle: 'Transacciones no anuladas', color: 'text-sky-700' },
+    { etiqueta: 'Ventas', valor: String(ventasFiltradas.length), detalle: 'Transacciones con pago confirmado', color: 'text-sky-700' },
     { etiqueta: 'Unidades vendidas', valor: String(unidades), detalle: 'Unidades dentro del período', color: 'text-amber-700' },
     { etiqueta: 'Ticket promedio', valor: moneda.format(ticketPromedio), detalle: 'Ingresos divididos entre ventas', color: 'text-rose-700' },
   ];
