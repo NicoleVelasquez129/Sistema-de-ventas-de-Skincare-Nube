@@ -32,9 +32,11 @@ function generarFacturaPDF(ventaData) {
             doc.moveTo(50, 125).lineTo(550, 125).strokeColor('#e0e0e0').stroke();
 
             doc.fontSize(11).fillColor('#68c3b7').text('Datos del Cliente:', 50, 135);
+
+            const comprador = ventaData.usuario || ventaData.Cliente || {};
             doc.fontSize(10).fillColor('#333333')
-               .text(`Nombre: ${ventaData.usuario.nombre}`, 50, 150)
-               .text(`Correo: ${ventaData.usuario.correo}`, 50, 165);
+                .text(`Nombre: ${comprador.nombre || 'Cliente en tienda'}`, 50, 150)
+                .text(`Correo: ${comprador.correo || '-'}`, 50, 165);
 
             // --- TABLA DE PRODUCTOS ---
             doc.moveTo(50, 185).lineTo(550, 185).strokeColor('#e0e0e0').stroke();
@@ -84,7 +86,6 @@ function generarFacturaPDF(ventaData) {
 
             // --- PIE DE PÁGINA ---
             doc.fontSize(9).fillColor('#888888')
-               .text('Modalidad de pago: Contra entrega (Pago al recibir)', 50, 680, { align: 'center' })
                .text('¡Gracias por tu compra en Skincare Nube!', 50, 695, { align: 'center' });
 
             doc.end();

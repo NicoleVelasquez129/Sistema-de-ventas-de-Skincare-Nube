@@ -8,7 +8,7 @@ const Pago = require("./Pago");
 
 // Relaciones
 Categoria.hasMany(Producto, { foreignKey: "id_categoria" });
-Producto.belongsTo(Categoria, { foreignKey: "id_categoria" });
+Producto.belongsTo(Categoria, { foreignKey: "id_categoria", as: "Categoria" });
 
 Venta.belongsTo(Cliente, { foreignKey: "id_cliente" });
 Cliente.hasMany(Venta, { foreignKey: "id_cliente" });

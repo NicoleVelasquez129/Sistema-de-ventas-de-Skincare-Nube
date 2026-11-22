@@ -4,5 +4,4 @@ uploads/*
 !uploads/.gitkeep
 *.log
 .DS_Store
-.env.docker
 .env.example

@@ -1,18 +1,17 @@
-DROP DATABASE IF EXISTS skinker_nube_db;
-CREATE DATABASE skinker_nube_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS skinker_nube_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE skinker_nube_db;
- 
+
 -- --------------------------------------------------------
 -- 1. CATEGORIAS
 -- --------------------------------------------------------
 CREATE TABLE categorias (
     id_categoria INT AUTO_INCREMENT PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
+    nombre VARCHAR(100) NOT NULL UNIQUE,
     descripcion TEXT,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
- 
+
 -- --------------------------------------------------------
 -- 2. USUARIOS (cuentas con login: administrador, vendedor, cliente)
 -- --------------------------------------------------------
@@ -28,9 +27,10 @@ CREATE TABLE usuarios (
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
- 
+
 -- --------------------------------------------------------
 -- 3. PRODUCTOS (precio de venta y costo de compra)
+--   Regla de precio: mayor a 0 y hasta 5000 (la misma que valida el servicio).
 -- --------------------------------------------------------
 CREATE TABLE productos (
     id_producto INT AUTO_INCREMENT PRIMARY KEY,
@@ -40,7 +40,7 @@ CREATE TABLE productos (
     modo_uso TEXT NULL,
     etiqueta VARCHAR(30) NULL,
     imagen VARCHAR(500),
-    precio DECIMAL(10, 2) NOT NULL CHECK (precio >= 0),
+    precio DECIMAL(10, 2) NOT NULL,
     costo DECIMAL(10, 2) NOT NULL DEFAULT 0.00 CHECK (costo >= 0),
     stock INT NOT NULL DEFAULT 0 CHECK (stock >= 0),
     stock_minimo INT NOT NULL DEFAULT 5 CHECK (stock_minimo >= 0),
@@ -48,9 +48,10 @@ CREATE TABLE productos (
     id_categoria INT,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT chk_productos_precio CHECK (precio > 0 AND precio <= 5000),
     FOREIGN KEY (id_categoria) REFERENCES categorias(id_categoria) ON DELETE SET NULL
 ) ENGINE=InnoDB;
- 
+
 -- --------------------------------------------------------
 -- 4. CLIENTES (datos de quien compra; el carnet es opcional)
 -- --------------------------------------------------------
@@ -64,14 +65,17 @@ CREATE TABLE clientes (
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
- 
+
 -- --------------------------------------------------------
 -- 5. VENTAS
---   id_usuario  = cuenta del cliente que compro por la plataforma
---   id_vendedor = vendedor (o admin) que registro la venta en tienda
---   id_cliente  = datos del cliente (ventas en tienda)
---   estado         = registrada / anulada
---   estado_pedido  = pendiente -> pagado -> enviado -> entregado
+--   id_usuario       = cuenta del cliente que compró por la plataforma
+--   id_vendedor      = vendedor (o admin) que registró o confirmó la venta
+--   id_cliente       = datos del cliente
+--   estado           = registrada / anulada
+--   estado_pedido    = pendiente -> pagado -> enviado
+--                      ('entregado' queda reservado; el flujo actual termina en 'enviado')
+--   comprobante_pago = ruta del comprobante que sube el cliente (imagen o PDF)
+--   mensaje_pago     = mensaje del vendedor cuando el pago no llegó
 -- --------------------------------------------------------
 CREATE TABLE ventas (
     id_venta INT AUTO_INCREMENT PRIMARY KEY,
@@ -84,6 +88,8 @@ CREATE TABLE ventas (
     ubicacion_lat DECIMAL(10, 7) NULL CHECK (ubicacion_lat BETWEEN -90 AND 90),
     ubicacion_lng DECIMAL(10, 7) NULL CHECK (ubicacion_lng BETWEEN -180 AND 180),
     imagen_entrega VARCHAR(500) NULL,
+    comprobante_pago VARCHAR(500) NULL,
+    mensaje_pago VARCHAR(255) NULL,
     fecha_entrega DATETIME NULL,
     id_cliente INT NULL,
     id_usuario INT NULL,
@@ -96,7 +102,7 @@ CREATE TABLE ventas (
     INDEX idx_ventas_fecha (fecha),
     INDEX idx_ventas_estado_pedido (estado_pedido)
 ) ENGINE=InnoDB;
- 
+
 -- --------------------------------------------------------
 -- 6. DETALLE_VENTAS (precio y costo guardados al momento de la venta)
 --   El producto no se puede borrar si tiene ventas (RESTRICT):
@@ -115,9 +121,9 @@ CREATE TABLE detalle_ventas (
     FOREIGN KEY (id_venta) REFERENCES ventas(id_venta) ON DELETE CASCADE,
     FOREIGN KEY (id_producto) REFERENCES productos(id_producto) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
- 
+
 -- --------------------------------------------------------
--- 7. PAGOS (quien confirmo el pago, metodo y monto)
+-- 7. PAGOS (quién confirmó el pago, método y monto)
 -- --------------------------------------------------------
 CREATE TABLE pagos (
     id_pago INT AUTO_INCREMENT PRIMARY KEY,
@@ -131,9 +137,10 @@ CREATE TABLE pagos (
     FOREIGN KEY (id_venta) REFERENCES ventas(id_venta) ON DELETE CASCADE,
     FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE SET NULL
 ) ENGINE=InnoDB;
- 
+
 -- --------------------------------------------------------
--- 8. MOVIMIENTOS_INVENTARIO (auditoria del stock)
+-- 8. MOVIMIENTOS_INVENTARIO (auditoría del stock)
+--   Tabla reservada para uso futuro: el backend todavía no escribe en ella.
 -- --------------------------------------------------------
 CREATE TABLE movimientos_inventario (
     id_movimiento INT AUTO_INCREMENT PRIMARY KEY,
@@ -147,9 +154,11 @@ CREATE TABLE movimientos_inventario (
     FOREIGN KEY (id_producto) REFERENCES productos(id_producto) ON DELETE RESTRICT,
     FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE SET NULL
 ) ENGINE=InnoDB;
- 
+
 -- --------------------------------------------------------
--- 9. NOTIFICACIONES (avisos al administrador; se usa en el Paso 5)
+-- 9. NOTIFICACIONES (avisos por pedido)
+--   Tabla reservada para el módulo de notificaciones (Paso 6, pendiente):
+--   el backend todavía no la usa.
 -- --------------------------------------------------------
 CREATE TABLE notificaciones (
     id_notificacion INT AUTO_INCREMENT PRIMARY KEY,
@@ -162,36 +171,38 @@ CREATE TABLE notificaciones (
     FOREIGN KEY (id_venta) REFERENCES ventas(id_venta) ON DELETE CASCADE,
     INDEX idx_notificaciones_leida (leida)
 ) ENGINE=InnoDB;
- 
+
 -- ========================================================
--- DATOS DE EJEMPLO (los costos son de prueba: ajustalos a los reales)
+-- DATOS DE EJEMPLO (los costos son de prueba: ajústalos a los reales)
 -- ========================================================
 INSERT INTO categorias (nombre, descripcion) VALUES
 ('Sérums', 'Concentrados faciales con principios activos para necesidades específicas de la piel.'),
 ('Protectores Solares', 'Cremas y geles de alta protección contra rayos UV UVA y UVB.'),
 ('Limpiadores', 'Geles y espumas limpiadoras para eliminar impurezas sin resecar el rostro.'),
 ('Hidratantes', 'Cremas y geles para mantener la barrera cutánea hidratada.');
- 
+
 INSERT INTO productos (nombre, descripcion, precio, costo, stock, stock_minimo, id_categoria) VALUES
 ('Sérum Facial con Vitamina C 30ml', 'Ilumina y unifica el tono de la piel, antioxidante potente.', 120.00, 70.00, 15, 4, 1),
 ('Sérum Ácido Hialurónico', 'Hidratación profunda y efecto relleno de líneas de expresión.', 135.00, 80.00, 20, 5, 1),
 ('Protector Solar Toque Seco SPF 50+', 'Protección solar avanzada sin sensación grasosa, ideal para piel mixta/grasa.', 95.00, 55.00, 30, 8, 2),
 ('Limpiador Facial Suave con Ceramidas', 'Limpia profundamente respetando la barrera natural de la piel.', 80.00, 45.00, 12, 3, 3),
 ('Crema Hidratante Reparadora', 'Nutrición intensiva para pieles secas o deshidratadas.', 110.00, 65.00, 18, 5, 4);
- 
+
 -- Ana tiene carnet (sirve para probar el autorrelleno); Luis no.
 INSERT INTO clientes (nombre, carnet, telefono, correo, direccion) VALUES
 ('Ana Gomez', '4567890', '+591 71234567', 'ana.gomez@gmail.com', 'Av. América 123, Cochabamba'),
 ('Luis Perez', NULL, '+591 79876543', 'luis.perez@hotmail.com', NULL);
 
-ALTER TABLE ventas
-  ADD COLUMN comprobante_pago VARCHAR(500) NULL AFTER imagen_entrega,
-  ADD COLUMN mensaje_pago VARCHAR(255) NULL AFTER comprobante_pago;
 -- ========================================================
--- USUARIOS: no se insertan aqui a proposito (un hash de ejemplo no
--- permite iniciar sesion). Despues de ejecutar este archivo, desde
+-- USUARIOS: no se insertan aquí a propósito (un hash de ejemplo no
+-- permite iniciar sesión). Después de ejecutar este archivo, desde
 -- la carpeta backend/ ejecuta:
 --     node scripts/crearAdmin.js
 --     node scripts/crearVendedor.js
--- Los clientes se crean desde la pantalla de registro.
+-- Los clientes se crean desde la pantalla de registro de la página.
 -- ========================================================
+
+-- ========================================================
+-- SOLO SI TU BASE YA EXISTÍA (no ejecutar en una base nueva):
+--   ALTER TABLE categorias ADD UNIQUE (nombre);
+--   ALTER TABLE productos ADD CONSTRAINT chk_productos_precio CHECK (precio > 0 AND precio <= 5000);

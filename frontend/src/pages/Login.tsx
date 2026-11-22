@@ -18,6 +18,9 @@ const claseBoton =
 
 const REGEX_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const ErrorCampo: React.FC<{ texto?: string }> = ({ texto }) =>
+  texto ? <p role="alert" className="mt-1 text-xs text-rose-600">{texto}</p> : null;
+
 export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [vista, setVista] = useState<Vista>('login');
   const [nombre, setNombre] = useState('');
@@ -26,6 +29,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [contrasena, setContrasena] = useState('');
   const [confirmar, setConfirmar] = useState('');
   const [error, setError] = useState('');
+  const [errores, setErrores] = useState<Record<string, string>>({});
   const [aviso, setAviso] = useState('');
   const [procesando, setProcesando] = useState(false);
   const navigate = useNavigate();
@@ -35,6 +39,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const cambiarVista = (nueva: Vista) => {
     setVista(nueva);
     setError('');
+    setErrores({});
     setAviso('');
     setContrasena('');
     setConfirmar('');
@@ -48,10 +53,11 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const iniciarSesion = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!correo.trim() || !contrasena) {
-      setError('Ingresa tu correo y tu contraseña.');
-      return;
-    }
+    const nuevos: Record<string, string> = {};
+    if (!correo.trim()) nuevos.correo = 'Escribe tu correo.';
+    if (!contrasena) nuevos.contrasena = 'Escribe tu contraseña.';
+    setErrores(nuevos);
+    if (Object.keys(nuevos).length) return;
     setProcesando(true);
     try {
       const res = await loginAPI(correo, contrasena);
@@ -67,13 +73,16 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const crearCuenta = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!nombre.trim()) return setError('Escribe tu nombre.');
-    if (!REGEX_CORREO.test(correo.trim())) return setError('Ingresa un correo electrónico válido.');
-    if (!telefono.trim()) return setError('Escribe tu celular.');
+    const nuevos: Record<string, string> = {};
+    if (!nombre.trim()) nuevos.nombre = 'Escribe tu nombre.';
+    if (!REGEX_CORREO.test(correo.trim())) nuevos.correo = 'Ingresa un correo válido.';
+    if (!telefono.trim()) nuevos.telefono = 'Escribe tu celular.';
     if (contrasena.length < 8 || !/[A-Za-z]/.test(contrasena) || !/\d/.test(contrasena)) {
-      return setError('La contraseña debe tener al menos 8 caracteres, con letras y números.');
+      nuevos.contrasena = 'Mínimo 8 caracteres, con letras y números.';
     }
-    if (contrasena !== confirmar) return setError('Las contraseñas no coinciden.');
+    if (contrasena !== confirmar) nuevos.confirmar = 'Las contraseñas no coinciden.';
+    setErrores(nuevos);
+    if (Object.keys(nuevos).length) return;
     setProcesando(true);
     try {
       const res = await registroAPI({ nombre, correo, contrasena, telefono: telefono.trim() });
@@ -90,7 +99,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     e.preventDefault();
     setError('');
     setAviso('');
-    if (!REGEX_CORREO.test(correo.trim())) return setError('Ingresa un correo electrónico válido.');
+    if (!REGEX_CORREO.test(correo.trim())) return setErrores({ correo: 'Ingresa un correo válido.' });
+    setErrores({});
     setProcesando(true);
     try {
       const res = await olvideContrasenaAPI(correo.trim());
@@ -140,12 +150,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </div>
           )}
 
-          {error && (
-            <div role="alert" className="mb-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-              {error}
-            </div>
-          )}
-
           {vista === 'login' && (
             <form onSubmit={iniciarSesion} className="space-y-4" noValidate>
               <div>
@@ -155,13 +159,15 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <div>
                 <label htmlFor="l-correo" className={claseEtiqueta}>Correo</label>
                 <input id="l-correo" type="email" value={correo} onChange={e => setCorreo(e.target.value)} autoComplete="username" className={claseCampo} />
+                <ErrorCampo texto={errores.correo} />
               </div>
-              <CampoContrasena id="l-clave" etiqueta="Contraseña" valor={contrasena} onCambio={setContrasena} autoComplete="current-password" />
+              <CampoContrasena id="l-clave" etiqueta="Contraseña" valor={contrasena} onCambio={setContrasena} autoComplete="current-password" error={errores.contrasena} />
               <div className="text-right">
-                <button type="button" onClick={() => cambiarVista('olvide')} className="text-sm font-semibold text-nube-oscuro hover:underline">
+                <button type="button" onClick={() => cambiarVista('olvide')} className="text-sm rounded-xl bg-white px-4 py-2 text-sm font-semibold text-nube-oscuro ring-1 ring-primary/60 transition hover:bg-primary/15">
                   ¿Olvidaste tu contraseña?
                 </button>
               </div>
+              {error && <p role="alert" className="text-xs text-rose-600">{error}</p>}
               <button type="submit" disabled={procesando} className={claseBoton}>
                 {procesando ? 'Ingresando…' : 'Ingresar'}
               </button>
@@ -182,16 +188,19 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </div>
               <div>
                 <label htmlFor="r-nombre" className={claseEtiqueta}>Nombre completo</label>
-                <input id="r-nombre" value={nombre} onChange={e => setNombre(e.target.value)} maxLength={150} autoComplete="name" className={claseCampo} />
+                <input id="r-nombre" value={nombre} onChange={e => setNombre(e.target.value)} maxLength={150} autoComplete="off" className={claseCampo} />
+                <ErrorCampo texto={errores.nombre} />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label htmlFor="r-correo" className={claseEtiqueta}>Correo</label>
-                  <input id="r-correo" type="email" value={correo} onChange={e => setCorreo(e.target.value)} autoComplete="email" className={claseCampo} />
+                  <input id="r-correo" type="email" value={correo} onChange={e => setCorreo(e.target.value)} autoComplete="off" className={claseCampo} />
+                  <ErrorCampo texto={errores.correo} />
                 </div>
                 <div>
-                  <label htmlFor="r-tel" className={claseEtiqueta}>Teléfono (opcional)</label>
-                  <input id="r-tel" type="tel" value={telefono} onChange={e => setTelefono(e.target.value)} maxLength={50} autoComplete="tel" className={claseCampo} />
+                  <label htmlFor="r-tel" className={claseEtiqueta}>Celular</label>
+                  <input id="r-tel" type="tel" value={telefono} onChange={e => setTelefono(e.target.value)} maxLength={50} autoComplete="off" className={claseCampo} />
+                  <ErrorCampo texto={errores.telefono} />
                 </div>
               </div>
               <CampoContrasena
@@ -201,8 +210,10 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 onCambio={setContrasena}
                 autoComplete="new-password"
                 ayuda="Mínimo 8 caracteres, con letras y números."
+                error={errores.contrasena}
               />
-              <CampoContrasena id="r-clave2" etiqueta="Repite la contraseña" valor={confirmar} onCambio={setConfirmar} autoComplete="new-password" />
+              <CampoContrasena id="r-clave2" etiqueta="Repite la contraseña" valor={confirmar} onCambio={setConfirmar} autoComplete="new-password" error={errores.confirmar} />
+              {error && <p role="alert" className="text-xs text-rose-600">{error}</p>}
               <button type="submit" disabled={procesando} className={claseBoton}>
                 {procesando ? 'Creando cuenta…' : 'Crear mi cuenta'}
               </button>
@@ -223,8 +234,10 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <>
                   <div>
                     <label htmlFor="o-correo" className={claseEtiqueta}>Correo</label>
-                    <input id="o-correo" type="email" value={correo} onChange={e => setCorreo(e.target.value)} autoComplete="email" className={claseCampo} />
+                    <input id="o-correo" type="email" value={correo} onChange={e => setCorreo(e.target.value)} autoComplete="off" className={claseCampo} />
+                    <ErrorCampo texto={errores.correo} />
                   </div>
+                  {error && <p role="alert" className="text-xs text-rose-600">{error}</p>}
                   <button type="submit" disabled={procesando} className={claseBoton}>
                     {procesando ? 'Enviando…' : 'Enviar enlace'}
                   </button>

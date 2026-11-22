@@ -182,6 +182,7 @@ export interface VentaResumenAPI {
     id_producto: number;
     cantidad: number;
     precio_unitario: number | string;
+    costo_unitario?: number | string;
     subtotal: number | string;
     Producto?: Producto;
   }[];
@@ -448,4 +449,43 @@ export const descargarReporteAPI = async (
   enlace.click();
   enlace.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
+export interface FilaVentasReporte { clave: string; ventas: number; ingresos: number; costo: number; ganancia: number }
+export interface ReporteVentasData {
+  desde: string; hasta: string; agrupar: 'dia' | 'mes';
+  filas: FilaVentasReporte[]; por_vendedor: FilaVentasReporte[]; totales: FilaVentasReporte;
+}
+export interface FilaGananciasReporte { producto: string; unidades: number; ingresos: number; costo: number; ganancia: number }
+export interface ReporteGananciasData {
+  desde: string; hasta: string; filas: FilaGananciasReporte[];
+  totales: { unidades: number; ingresos: number; costo: number; ganancia: number };
+}
+export interface FilaInventarioReporte {
+  producto: string; categoria: string; stock: number; stock_minimo: number;
+  costo: number; valor_costo: number; bajo_minimo: boolean;
+}
+export interface ReporteInventarioData {
+  filas: FilaInventarioReporte[];
+  totales: { productos: number; unidades: number; valor_costo: number; bajo_minimo: number };
+}
+export type DatosReporte = ReporteVentasData | ReporteGananciasData | ReporteInventarioData;
+
+export const obtenerReporteAPI = async (
+  tipo: TipoReporte,
+  filtros: { desde?: string; hasta?: string; agrupar?: 'dia' | 'mes' }
+): Promise<DatosReporte> => {
+  const params = new URLSearchParams();
+  if (tipo !== 'inventario') {
+    params.set('desde', filtros.desde ?? '');
+    params.set('hasta', filtros.hasta ?? '');
+  }
+  if (tipo === 'ventas') params.set('agrupar', filtros.agrupar ?? 'dia');
+
+  const response = await fetch(`${API_URL}/reportes/${tipo}?${params.toString()}`, { headers: cabecerasAuth() });
+  const body = await response.json().catch(() => null);
+  if (!response.ok || !body?.success) {
+    throw new Error(body?.error || body?.mensaje || 'No se pudo cargar el informe.');
+  }
+  return body.data as DatosReporte;
 };

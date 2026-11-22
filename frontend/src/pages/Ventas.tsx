@@ -131,6 +131,9 @@ export const Ventas: React.FC = () => {
   }, [ventasFiltradas, categoriaId]);
 
   const ingresos = ventasFiltradas.reduce((suma, venta) => suma + ingresosDeVenta(venta, categoriaId), 0);
+  const ganancia = ventasFiltradas.reduce((suma, venta) =>
+  suma + detallesDeVenta(venta, categoriaId).reduce((s, d) =>
+    s + (Number(d.precio_unitario) - Number(d.costo_unitario ?? 0)) * Number(d.cantidad), 0), 0);
   const unidades = ventasFiltradas.reduce((suma, venta) =>
     suma + detallesDeVenta(venta, categoriaId).reduce((subtotal, detalle) => subtotal + Number(detalle.cantidad), 0), 0);
   const ticketPromedio = ventasFiltradas.length ? ingresos / ventasFiltradas.length : 0;
@@ -191,6 +194,7 @@ export const Ventas: React.FC = () => {
   const maximoGrafica = Math.max(...puntosGrafico.map(punto => punto.ingresos), 1);
   const tarjetas = [
     { etiqueta: 'Ingresos', valor: moneda.format(ingresos), detalle: categoriaId === 'todas' ? 'Incluye el total registrado' : 'Ventas de la categoría seleccionada', color: 'text-emerald-700' },
+    { etiqueta: 'Ganancia', valor: moneda.format(ganancia), detalle: 'Precio menos costo, sin envío', color: 'text-violet-700' },
     { etiqueta: 'Ventas', valor: String(ventasFiltradas.length), detalle: 'Transacciones con pago confirmado', color: 'text-sky-700' },
     { etiqueta: 'Unidades vendidas', valor: String(unidades), detalle: 'Unidades dentro del período', color: 'text-amber-700' },
     { etiqueta: 'Ticket promedio', valor: moneda.format(ticketPromedio), detalle: 'Ingresos divididos entre ventas', color: 'text-rose-700' },
@@ -252,7 +256,7 @@ export const Ventas: React.FC = () => {
         </label>
       </section>
 
-      <section aria-label="Indicadores de ventas" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section aria-label="Indicadores de ventas" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {tarjetas.map(tarjeta => (
           <article key={tarjeta.etiqueta} className="rounded-xl border border-stone-200 bg-white p-5">
             <p className="text-sm font-medium text-stone-500">{tarjeta.etiqueta}</p>

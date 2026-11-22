@@ -36,7 +36,7 @@ export const Canastita: React.FC<CanastitaProps> = ({
   const [errorCompra, setErrorCompra] = useState('');
   const [procesando, setProcesando] = useState(false);
 
-  const [conEnvio, setConEnvio] = useState(false);
+
   const [direccion, setDireccion] = useState('');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [buscandoGps, setBuscandoGps] = useState(false);
@@ -64,7 +64,7 @@ export const Canastita: React.FC<CanastitaProps> = ({
   const cantidadTotal = items.reduce((total, item) => total + item.cantidad, 0);
   const vacia = items.length === 0;
   const envioGratis = subtotal >= ENVIO_GRATIS_DESDE;
-  const envio = vacia || !conEnvio || envioGratis ? 0 : COSTO_ENVIO;
+  const envio = vacia || envioGratis ? 0 : COSTO_ENVIO;
   const total = subtotal + envio;
   const faltaParaGratis = Math.max(0, ENVIO_GRATIS_DESDE - subtotal);
   const progreso = Math.min(100, (subtotal / ENVIO_GRATIS_DESDE) * 100);
@@ -120,7 +120,7 @@ export const Canastita: React.FC<CanastitaProps> = ({
           id_producto: producto.id_producto,
           cantidad,
         })),
-        con_envio: conEnvio,
+        con_envio: true,
         direccion_entrega: direccion.trim() || undefined,
         ubicacion_lat: coords ? coords.lat : undefined,
         ubicacion_lng: coords ? coords.lng : undefined,
@@ -242,10 +242,10 @@ export const Canastita: React.FC<CanastitaProps> = ({
 
             {errorCompra && <p role="alert" className="text-sm text-rose-700">{errorCompra}</p>}
 
-            <button type="button" onClick={irAMisPedidos} className="text-sm font-semibold text-stone-800 underline">
+            <button type="button" onClick={irAMisPedidos} className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primaryFocus">
               Ver mis pedidos
             </button>
-            <button type="button" onClick={cerrarCanastita} className="text-sm font-semibold text-stone-600 hover:underline">
+            <button type="button" onClick={cerrarCanastita} className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-nube-oscuro ring-1 ring-primary/60 transition hover:bg-primary/15">
               Seguir viendo productos
             </button>
           </div>
@@ -364,10 +364,6 @@ export const Canastita: React.FC<CanastitaProps> = ({
             )}
 
             <div className="mb-5 space-y-3">
-              <label className="flex items-center justify-between rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm font-semibold text-stone-700">
-                Solicitar envío a domicilio
-                <input type="checkbox" checked={conEnvio} onChange={e => setConEnvio(e.target.checked)} className="h-4 w-4" />
-              </label>
 
               <div className="space-y-2 rounded-xl border border-stone-200 bg-white p-3">
                 <label htmlFor="c-dir" className="block text-xs font-semibold text-stone-600">Dirección de entrega (obligatoria)</label>

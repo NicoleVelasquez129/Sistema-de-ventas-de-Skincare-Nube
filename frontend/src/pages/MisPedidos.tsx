@@ -75,7 +75,7 @@ export const MisPedidos: React.FC = () => {
       {cargando && <p className="text-sm text-stone-500">Cargando…</p>}
       {!cargando && pedidos.length === 0 && (
         <p className="text-sm text-stone-600">
-          Aún no tienes pedidos. <Link to="/" className="font-semibold underline">Ir al catálogo</Link>
+          Aún no tienes pedidos. <Link to="/" className="ml-1 inline-block rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primaryFocus">Ir al catálogo</Link>
         </p>
       )}
 
@@ -113,10 +113,15 @@ export const MisPedidos: React.FC = () => {
               )}
 
               {pedido.comprobante_pago && (
-                <a href={urlImagen(pedido.comprobante_pago)} target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm font-semibold text-stone-700 underline">
-                  Ver comprobante enviado
-                </a>
-              )}
+              <a
+                href={urlImagen(pedido.comprobante_pago)}
+                target="_blank"
+                rel="noreferrer"
+                className="mr-2 mt-4 inline-block rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primaryFocus"
+              >
+                Ver comprobante
+              </a>
+          )}
 
               {pedido.estado === 'registrada' && pedido.estado_pedido !== 'pendiente' && (
                 <button

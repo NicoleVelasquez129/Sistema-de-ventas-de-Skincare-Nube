@@ -80,7 +80,7 @@ const obtenerProductosService = async (incluirInactivos = false, buscar = "") =>
     }
     return await Producto.findAll({
         where: { [Op.and]: condiciones },
-        include: [{ model: Categoria, attributes: ['nombre'] }],
+        include: [{ model: Categoria, as: 'Categoria', attributes: ['nombre'] }],
         order: [['id_producto', 'ASC']]
     });
 }; 
@@ -157,7 +157,7 @@ const obtenerProductosStockBajoService = async () => {
             stock: { [Op.lte]: sequelize.col('stock_minimo') },
             activo: true
         },
-        include: [{ model: Categoria, attributes: ['nombre'] }]
+        include: [{ model: Categoria, as: 'Categoria', attributes: ['nombre'] }]
     });
 };
 

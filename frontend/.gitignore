@@ -31,5 +31,4 @@ dist/
 .env.production.local
 *.log
 .DS_Store
-.env.docker
 .env.example

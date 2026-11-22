@@ -1,4 +1,4 @@
-const { Venta, Usuario, DetalleVenta, Producto } = require('../models');
+const { Venta, Usuario, Cliente, DetalleVenta, Producto } = require('../models');
 const { crearVenta, obtenerVentas: obtenerVentasService, confirmarPago, obtenerVentasDeVendedor,cancelarVenta,
     guardarComprobante, obtenerPedidosDeCliente, obtenerPedidosEnLinea, rechazarPago, avanzarEstadoPedido } = require('../services/saleService');
 
@@ -83,6 +83,7 @@ async function descargarFacturaPDF(req, res) {
         const venta = await Venta.findByPk(idVenta, {
             include: [
                 { model: Usuario, as: 'usuario', attributes: ['nombre', 'correo'] },
+                { model: Cliente, attributes: ['nombre', 'carnet', 'telefono', 'correo'] },
                 { model: DetalleVenta, as: 'detalles', include: [Producto] }
             ]
         });

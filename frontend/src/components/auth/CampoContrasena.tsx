@@ -8,9 +8,10 @@ interface CampoContrasenaProps {
   onCambio: (valor: string) => void;
   autoComplete: string;
   ayuda?: string;
+  error?: string;
 }
 
-export const CampoContrasena: React.FC<CampoContrasenaProps> = ({ id, etiqueta, valor, onCambio, autoComplete, ayuda }) => {
+export const CampoContrasena: React.FC<CampoContrasenaProps> = ({ id, etiqueta, valor, onCambio, autoComplete, ayuda, error }) => {
   const [visible, setVisible] = useState(false);
 
   return (
@@ -45,7 +46,14 @@ export const CampoContrasena: React.FC<CampoContrasenaProps> = ({ id, etiqueta, 
           )}
         </button>
       </div>
-      {ayuda && <p className="mt-1 text-xs text-stone-400">{ayuda}</p>}
+      {(ayuda || error) && (
+        <p
+          role={error ? 'alert' : undefined}
+          className={`mt-1 text-xs ${error ? 'text-rose-600' : 'text-stone-400'}`}
+        >
+          {error || ayuda}
+        </p>
+      )}
     </div>
   );
 };

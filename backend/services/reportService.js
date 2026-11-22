@@ -113,7 +113,7 @@ const reporteGananciasService = async (desde, hasta) => {
 const reporteInventarioService = async () => {
     const productos = await Producto.findAll({
         where: { activo: true },
-        include: [{ model: Categoria, attributes: ["nombre"] }],
+        include: [{ model: Categoria, as: "Categoria", attributes: ["nombre"] }],
         order: [["nombre", "ASC"]]
     });
     const filas = productos.map(p => ({

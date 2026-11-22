@@ -3,6 +3,7 @@ import type { Producto } from '../interfaces';
 import {
   buscarClientePorCarnetAPI,
   confirmarPagoAPI,
+  guardarFacturaPDF,
   obtenerMisVentasAPI,
   obtenerProductosAPI,
   registrarVentaVendedorAPI,
@@ -33,6 +34,9 @@ const claseControl =
 const claseBoton =
   'rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primaryFocus disabled:cursor-not-allowed disabled:opacity-50';
 const claseTarjeta = 'rounded-2xl border border-stone-200 bg-white p-5 shadow-sm';
+const REGEX_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ErrorCampo: React.FC<{ texto?: string }> = ({ texto }) =>
+  texto ? <p role="alert" className="mt-1 text-xs text-rose-600">{texto}</p> : null;
 
 export const Vender: React.FC = () => {
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -56,12 +60,17 @@ export const Vender: React.FC = () => {
 
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState('');
+  const [errores, setErrores] = useState<Record<string, string>>({});
   const [exito, setExito] = useState('');
 
   // Mis ventas
   const [misVentas, setMisVentas] = useState<VentaVendedorAPI[]>([]);
   const [metodoPorVenta, setMetodoPorVenta] = useState<Record<number, string>>({});
   const [confirmando, setConfirmando] = useState<number | null>(null);
+
+  const [desde, setDesde] = useState('');
+  const [hasta, setHasta] = useState('');
+  const [descargando, setDescargando] = useState<number | null>(null);
 
   const cargarProductos = useCallback(async () => {
     try {
@@ -99,6 +108,7 @@ export const Vender: React.FC = () => {
 
   const editarDato = (setter: (valor: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setter(e.target.value);
+    setErrores({});
     setDatosConfirmados(false); // si el vendedor corrige algo, debe volver a confirmar
   };
 
@@ -164,6 +174,7 @@ export const Vender: React.FC = () => {
     setClienteEncontrado(false);
     setDatosConfirmados(false);
     setMensajeCarnet('');
+    setErrores({});
   };
 
   // --- Registrar venta (y cobrarla si se marcó) ---
@@ -172,11 +183,13 @@ export const Vender: React.FC = () => {
     setError('');
     setExito('');
 
-    if (lineas.length === 0) return setError('Agrega al menos un producto.');
-    if (!nombre.trim()) return setError('El nombre del cliente es obligatorio.');
-    if (clienteEncontrado && !datosConfirmados) {
-      return setError('Confirma que los datos del cliente son correctos.');
-    }
+    const nuevos: Record<string, string> = {};
+    if (lineas.length === 0) nuevos.productos = 'Agrega al menos un producto.';
+    if (!nombre.trim()) nuevos.nombre = 'Escribe el nombre del cliente.';
+    if (correo.trim() && !REGEX_CORREO.test(correo.trim())) nuevos.correo = 'Ingresa un correo válido.';
+    if (clienteEncontrado && !datosConfirmados) nuevos.confirmacion = 'Confirma que los datos del cliente son correctos.';
+    setErrores(nuevos);
+    if (Object.keys(nuevos).length) return;
 
     setEnviando(true);
     try {
@@ -226,6 +239,18 @@ export const Vender: React.FC = () => {
     }
   };
 
+  const descargarTicket = async (idVenta: number) => {
+    setDescargando(idVenta);
+    setError('');
+    try {
+      await guardarFacturaPDF(idVenta);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo descargar el ticket.');
+    } finally {
+      setDescargando(null);
+    }
+  };
+
   const resumen = useMemo(() => {
     const validas = misVentas.filter(v => v.estado !== 'anulada');
     const vendido = validas.reduce((suma, v) => suma + Number(v.total), 0);
@@ -254,7 +279,7 @@ export const Vender: React.FC = () => {
         </div>
       )}
 
-      <form onSubmit={registrarVenta} className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+      <form onSubmit={registrarVenta} noValidate autoComplete="off" className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <div className="space-y-6">
           {/* CLIENTE */}
           <section className={claseTarjeta}>
@@ -265,6 +290,7 @@ export const Vender: React.FC = () => {
             <div className="flex gap-2">
               <input
                 id="carnet"
+                autoComplete="off"
                 className={claseControl}
                 value={carnet}
                 onChange={e => cambiarCarnet(e.target.value)}
@@ -287,19 +313,21 @@ export const Vender: React.FC = () => {
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div>
                 <label className="mb-1 block text-xs font-semibold text-stone-600" htmlFor="nombre">Nombre *</label>
-                <input id="nombre" className={claseControl} value={nombre} onChange={editarDato(setNombre)} />
+                <input id="nombre" autoComplete="off" className={claseControl} value={nombre} onChange={editarDato(setNombre)} />
+                <ErrorCampo texto={errores.nombre} />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-stone-600" htmlFor="telefono">Teléfono</label>
-                <input id="telefono" className={claseControl} value={telefono} onChange={editarDato(setTelefono)} />
+                <input id="telefono" autoComplete="off" className={claseControl} value={telefono} onChange={editarDato(setTelefono)} />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-stone-600" htmlFor="correo">Correo</label>
-                <input id="correo" type="email" className={claseControl} value={correo} onChange={editarDato(setCorreo)} />
+                <input id="correo" type="email" autoComplete="off" className={claseControl} value={correo} onChange={editarDato(setCorreo)} />
+                <ErrorCampo texto={errores.correo} />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-stone-600" htmlFor="direccion">Dirección habitual</label>
-                <input id="direccion" className={claseControl} value={direccion} onChange={editarDato(setDireccion)} />
+                <input id="direccion" autoComplete="off" className={claseControl} value={direccion} onChange={editarDato(setDireccion)} />
               </div>
             </div>
 
@@ -309,6 +337,7 @@ export const Vender: React.FC = () => {
                 Confirmo que los datos del cliente son correctos
               </label>
             )}
+            <ErrorCampo texto={datosConfirmados ? undefined : errores.confirmacion} />
           </section>
 
           {/* PRODUCTOS */}
@@ -316,6 +345,7 @@ export const Vender: React.FC = () => {
             <h3 className="mb-3 font-semibold text-stone-900">Productos</h3>
             <input
               className={`${claseControl} mb-3`}
+              autoComplete="off"
               value={busqueda}
               onChange={e => setBusqueda(e.target.value)}
               placeholder="Buscar producto…"
@@ -341,6 +371,7 @@ export const Vender: React.FC = () => {
               ))}
               {productosFiltrados.length === 0 && <li className="py-3 text-sm text-stone-500">No hay productos.</li>}
             </ul>
+            <ErrorCampo texto={lineas.length === 0 ? errores.productos : undefined} />
           </section>
         </div>
 
@@ -413,6 +444,7 @@ export const Vender: React.FC = () => {
                 <th className="px-4 py-3">Total</th>
                 <th className="px-4 py-3">Pedido</th>
                 <th className="px-4 py-3">Pago</th>
+                <th className="px-4 py-3">Ticket</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
@@ -449,11 +481,23 @@ export const Vender: React.FC = () => {
                         </div>
                       ) : '—'}
                     </td>
+                    <td className="px-4 py-3">
+                      {v.estado === 'registrada' && v.estado_pedido !== 'pendiente' ? (
+                        <button
+                          type="button"
+                          onClick={() => descargarTicket(v.id_venta)}
+                          disabled={descargando === v.id_venta}
+                          className={`${claseBoton} px-3 py-1 text-xs`}
+                        >
+                          Ticket
+                        </button>
+                      ) : '—'}
+                    </td>
                   </tr>
                 );
               })}
               {misVentas.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-6 text-center text-stone-500">Todavía no registraste ventas.</td></tr>
+                <tr><td colSpan={7} className="px-4 py-6 text-center text-stone-500">Todavía no registraste ventas.</td></tr>
               )}
             </tbody>
           </table>

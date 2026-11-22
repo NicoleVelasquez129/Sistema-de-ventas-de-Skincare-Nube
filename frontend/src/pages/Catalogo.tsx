@@ -11,6 +11,8 @@ export const Catalogo: React.FC<{ onAddToCart: (item: Producto, qty: number) => 
   const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null);
   const [cantidadModal, setCantidadModal] = useState<number>(1);
   const [cantidades, setCantidades] = useState<{ [key: number]: number }>({});
+  const MAX_VISIBLES = 4;
+  const [verMasCategorias, setVerMasCategorias] = useState(false);
 
   useEffect(() => {
     cargarDatos();
@@ -36,6 +38,11 @@ export const Catalogo: React.FC<{ onAddToCart: (item: Producto, qty: number) => 
     return coincideCategoria && coincideBusqueda;//examen
   });
 
+  const hayMuchas = categorias.length > 5;
+  const categoriasVisibles = hayMuchas ? categorias.slice(0, MAX_VISIBLES) : categorias;
+  const categoriasExtra = hayMuchas ? categorias.slice(MAX_VISIBLES) : [];
+  const extraActiva = categoriasExtra.some(c => c.id_categoria === categoriaSeleccionada);
+
   const handleCantidadChange = (id: number, delta: number) => {
     setCantidades(prev => {
       const actual = prev[id] || 1;
@@ -47,9 +54,9 @@ export const Catalogo: React.FC<{ onAddToCart: (item: Producto, qty: number) => 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#fffdf9_0%,_#f7f1ea_35%,_#f3eee8_100%)] px-4 py-8 text-slate-800">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8 rounded-[28px] border border-[#eadfce] bg-white/70 p-4 shadow-[0_18px_45px_rgba(95,78,62,0.08)] backdrop-blur-md sm:p-5">
+        <div className="relative z-20 mb-8 rounded-[28px] border border-[#eadfce] bg-white/70 p-4 shadow-[0_18px_45px_rgba(95,78,62,0.08)] backdrop-blur-md sm:p-5">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex overflow-x-auto pb-1 scrollbar-hide">
+            <div className="flex pb-1">
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setCategoriaSeleccionada(null)}
@@ -61,7 +68,7 @@ export const Catalogo: React.FC<{ onAddToCart: (item: Producto, qty: number) => 
                 >
                   Todas
                 </button>
-                {categorias?.map(cat => (
+                {categoriasVisibles.map(cat => (
                   <button
                     key={cat.id_categoria}
                     onClick={() => setCategoriaSeleccionada(cat.id_categoria)}
@@ -74,6 +81,40 @@ export const Catalogo: React.FC<{ onAddToCart: (item: Producto, qty: number) => 
                     {cat.nombre}
                   </button>
                 ))}
+                {categoriasExtra.length > 0 && (
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setVerMasCategorias(v => !v)}
+                      aria-expanded={verMasCategorias}
+                      className={`rounded-full px-5 py-2.5 text-sm font-semibold whitespace-nowrap transition-all ${
+                        extraActiva
+                          ? 'bg-[#68c3b7] text-white shadow-[0_10px_20px_rgba(104,195,183,0.28)]'
+                          : 'border border-[#e6dfd5] bg-white text-slate-600 hover:border-[#cfc2ad] hover:text-slate-800'
+                      }`}
+                    >
+                      Más categorías ▾
+                    </button>
+                    {verMasCategorias && (
+                      <div className="absolute left-0 top-full z-30 mt-2 w-60 rounded-2xl border border-[#eadfce] bg-white p-2 shadow-[0_18px_45px_rgba(95,78,62,0.16)]">
+                        {categoriasExtra.map(cat => (
+                          <button
+                            key={cat.id_categoria}
+                            type="button"
+                            onClick={() => { setCategoriaSeleccionada(cat.id_categoria); setVerMasCategorias(false); }}
+                            className={`block w-full rounded-xl px-4 py-2.5 text-left text-sm font-semibold transition ${
+                              categoriaSeleccionada === cat.id_categoria
+                                ? 'bg-[#68c3b7] text-white'
+                                : 'text-slate-600 hover:bg-[#f6f1ea]'
+                            }`}
+                          >
+                            {cat.nombre}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -104,7 +145,7 @@ export const Catalogo: React.FC<{ onAddToCart: (item: Producto, qty: number) => 
                   onClick={() => { setProductoSeleccionado(prod); setCantidadModal(1); }}
                 >
                   {prod.imagen ? (
-                    <img src={urlImagen(prod.imagen)} alt={prod.nombre} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    <img src={urlImagen(prod.imagen)} alt={prod.nombre} className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105" />
                   ) : (
                     <span className="flex h-full items-center justify-center text-sm text-slate-400">Sin imagen</span>
                   )}
@@ -159,50 +200,54 @@ export const Catalogo: React.FC<{ onAddToCart: (item: Producto, qty: number) => 
       {/* Modal de Detalle del Producto (Ingredientes y Modo de uso) */}
       {productoSeleccionado && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
-          <div className="relative w-full max-w-lg rounded-[30px] bg-white p-6 shadow-[0_28px_60px_rgba(33,28,23,0.18)]">
-            <button 
+          <div className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-[30px] bg-white p-6 shadow-[0_28px_60px_rgba(33,28,23,0.18)]">
+            <button
               onClick={() => setProductoSeleccionado(null)}
-              className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-[#f5efe8] text-lg font-semibold text-slate-500 transition hover:bg-[#ece3d7] hover:text-slate-700"
+              className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-[#f5efe8] text-lg font-semibold text-slate-500 transition hover:bg-[#ece3d7] hover:text-slate-700"
             >
               ✕
             </button>
 
-            <div className="mb-4 h-60 overflow-hidden rounded-[24px] bg-[#f8f3ed]">
-              {productoSeleccionado.imagen ? (
-                <img src={urlImagen(productoSeleccionado.imagen)} alt={productoSeleccionado.nombre} className="h-full w-full object-cover" />
-              ) : (
-                <span className="flex h-full items-center justify-center text-slate-400">Sin imagen</span>
-              )}
-            </div>
-
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <h2 className="text-2xl font-semibold text-slate-900">{productoSeleccionado.nombre}</h2>
-              <span className="rounded-full bg-[#eef4ee] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#5c7a66]">#{productoSeleccionado.id_producto}</span>
-            </div>
-            <p className="mb-5 text-sm leading-6 text-slate-600">{productoSeleccionado.descripcion}</p>
-
-            <div className="mb-6 space-y-3 rounded-[24px] border border-[#f0e6dc] bg-[#faf7f2] p-4">
-              <div>
-                <h4 className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Ingredientes Principales</h4>
-                <p className="text-sm text-slate-700">Ácido Hialurónico, Extractos botánicos naturales, Vitamina E, Agua purificada.</p>
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="flex min-h-[18rem] items-center justify-center rounded-[24px] bg-[#f8f3ed] p-3">
+                {productoSeleccionado.imagen ? (
+                  <img src={urlImagen(productoSeleccionado.imagen)} alt={productoSeleccionado.nombre} className="max-h-[26rem] w-full object-contain" />
+                ) : (
+                  <span className="text-slate-400">Sin imagen</span>
+                )}
               </div>
-              <div>
-                <h4 className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Modo de Uso</h4>
-                <p className="text-sm text-slate-700">Aplicar de 3 a 5 gotas sobre el rostro limpio y seco por la mañana y noche. Masajear suavemente hasta su total absorción antes de la crema hidratante.</p>
-              </div>
-            </div>
 
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-3xl font-black tracking-tight text-slate-900">${Number(productoSeleccionado.precio).toFixed(2)}</span>
-              <button
-                onClick={() => {
-                  onAddToCart(productoSeleccionado, cantidadModal);
-                  setProductoSeleccionado(null);
-                }}
-                className="rounded-full bg-[#68c3b7] px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(104,195,183,0.3)] transition hover:bg-[#4bb3a8] active:scale-[0.99]"
-              >
-                Agregar al Carrito
-              </button>
+              <div className="flex flex-col">
+                <div className="mb-3 flex items-start justify-between gap-3 pr-10">
+                  <h2 className="text-2xl font-semibold text-slate-900">{productoSeleccionado.nombre}</h2>
+                  <span className="rounded-full bg-[#eef4ee] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#5c7a66]">#{productoSeleccionado.id_producto}</span>
+                </div>
+                <p className="mb-5 text-sm leading-6 text-slate-600">{productoSeleccionado.descripcion}</p>
+
+                <div className="mb-6 space-y-3 rounded-[24px] border border-[#f0e6dc] bg-[#faf7f2] p-4">
+                  <div>
+                    <h4 className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Ingredientes</h4>
+                    <p className="text-sm text-slate-700">{productoSeleccionado.ingredientes || 'No especificados.'}</p>
+                  </div>
+                  <div>
+                    <h4 className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Modo de uso</h4>
+                    <p className="text-sm text-slate-700">{productoSeleccionado.modo_uso || 'No especificado.'}</p>
+                  </div>
+                </div>
+
+                <div className="mt-auto flex items-center justify-between gap-3">
+                  <span className="text-3xl font-black tracking-tight text-slate-900">${Number(productoSeleccionado.precio).toFixed(2)}</span>
+                  <button
+                    onClick={() => {
+                      onAddToCart(productoSeleccionado, cantidadModal);
+                      setProductoSeleccionado(null);
+                    }}
+                    className="rounded-full bg-[#68c3b7] px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(104,195,183,0.3)] transition hover:bg-[#4bb3a8] active:scale-[0.99]"
+                  >
+                    Agregar al Carrito
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
