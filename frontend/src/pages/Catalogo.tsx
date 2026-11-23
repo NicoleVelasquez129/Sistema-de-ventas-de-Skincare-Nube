@@ -119,7 +119,7 @@ export const Catalogo: React.FC<{ onAddToCart: (item: Producto, qty: number) => 
             </div>
 
             <div className="relative w-full max-w-md xl:w-[380px]">
-              <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">⌕</span>
+              <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-600">⌕</span>
               <input
                 type="search"
                 value={busqueda}
@@ -147,7 +147,7 @@ export const Catalogo: React.FC<{ onAddToCart: (item: Producto, qty: number) => 
                   {prod.imagen ? (
                     <img src={urlImagen(prod.imagen)} alt={prod.nombre} className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105" />
                   ) : (
-                    <span className="flex h-full items-center justify-center text-sm text-slate-400">Sin imagen</span>
+                    <span className="flex h-full items-center justify-center text-sm text-slate-600">Sin imagen</span>
                   )}
                   <div className="absolute inset-0 flex items-center justify-center bg-black/10 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                     <span className="rounded-full bg-white/90 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-700 shadow">Ver Detalles</span>
@@ -157,7 +157,7 @@ export const Catalogo: React.FC<{ onAddToCart: (item: Producto, qty: number) => 
                 <div className="mb-3 flex items-start justify-between gap-3">
                   <div>
                     <h3 className="text-lg font-semibold text-slate-800">{prod.nombre}</h3>
-                    <p className="mt-1 text-xs uppercase tracking-[0.12em] text-slate-400">{prod.Categoria?.nombre ?? 'Skincare'}</p>
+                    <p className="mt-1 text-xs uppercase tracking-[0.12em] text-slate-600">{prod.Categoria?.nombre ?? 'Skincare'}</p>
                   </div>
                   <span className="rounded-full bg-[#f1eee9] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-600">#{prod.id_producto}</span>
                 </div>
@@ -168,7 +168,7 @@ export const Catalogo: React.FC<{ onAddToCart: (item: Producto, qty: number) => 
               <div>
                 <div className="mb-4 flex items-center justify-between">
                   <span className="text-[1.65rem] font-black tracking-tight text-slate-900">${Number(prod.precio).toFixed(2)}</span>
-                  <span className="rounded-full bg-[#eef4ee] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#5c7a66]">Stock: {prod.stock}</span>
+                  <span className="rounded-full bg-[#eef4ee] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#3f5a49]">Stock: {prod.stock}</span>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -213,7 +213,7 @@ export const Catalogo: React.FC<{ onAddToCart: (item: Producto, qty: number) => 
                 {productoSeleccionado.imagen ? (
                   <img src={urlImagen(productoSeleccionado.imagen)} alt={productoSeleccionado.nombre} className="max-h-[26rem] w-full object-contain" />
                 ) : (
-                  <span className="text-slate-400">Sin imagen</span>
+                  <span className="text-slate-600">Sin imagen</span>
                 )}
               </div>
 

@@ -164,12 +164,16 @@ export const registrarVentaAPI = async (ventaData: {
   return await response.json();
 };
 
-export const cancelarVentaAPI = async (idVenta: number) => {
+export const cancelarVentaAPI = async (idVenta: number): Promise<{ id_venta: number; estado: string }> => {
   const response = await fetch(`${API_URL}/ventas/${idVenta}/cancelar`, {
     method: 'PATCH',
     headers: cabecerasAuth(),
   });
-  return await response.json();
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data?.success) {
+    throw new Error(data?.error || data?.mensaje || 'No se pudo cancelar la venta.');
+  }
+  return data.data;
 };
 
 export interface VentaResumenAPI {
@@ -266,6 +270,7 @@ export const confirmarPagoAPI = async (idVenta: number, metodo: string) => {
 export interface VentaVendedorAPI {
   id_venta: number;
   fecha: string;
+  createdAt?: string;
   total: number | string;
   envio: number | string;
   estado: string;

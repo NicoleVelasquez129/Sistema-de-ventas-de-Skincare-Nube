@@ -23,7 +23,7 @@ export const Gestion: React.FC<GestionProps> = ({ onMostrarMensaje, onSetCargand
     <div className="fade-in mx-auto max-w-6xl px-4 py-8 sm:px-8">
       <div className="mb-6">
         <h2 className="font-serif text-3xl font-bold text-stone-900">Panel de gestión</h2>
-        <p className="text-sm text-stone-500">Administra tu catálogo, tus categorías, vendedores y reportes.</p>
+        <p className="text-sm text-stone-600">Administra tu catálogo, tus categorías, vendedores y reportes.</p>
       </div>
 
       <div role="tablist" className="mb-8 flex gap-2 overflow-x-auto border-b border-stone-200">
@@ -35,7 +35,7 @@ export const Gestion: React.FC<GestionProps> = ({ onMostrarMensaje, onSetCargand
             aria-selected={pestana === p.id}
             onClick={() => setPestana(p.id)}
             className={`-mb-px whitespace-nowrap border-b-2 px-5 py-3 text-sm font-semibold transition ${
-              pestana === p.id ? 'border-primary text-nube-oscuro' : 'border-transparent text-stone-500 hover:text-stone-800'
+              pestana === p.id ? 'border-primary text-nube-oscuro' : 'border-transparent text-stone-600 hover:text-stone-800'
             }`}
           >
             {p.texto}

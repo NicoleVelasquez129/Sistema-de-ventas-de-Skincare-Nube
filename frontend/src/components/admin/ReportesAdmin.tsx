@@ -24,7 +24,7 @@ const REPORTES: { id: TipoReporte; titulo: string; texto: string }[] = [
 
 const claseCampo =
   'w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-800 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30';
-const claseEtiqueta = 'mb-1 block text-xs font-semibold uppercase tracking-wide text-stone-500';
+const claseEtiqueta = 'mb-1 block text-xs font-semibold uppercase tracking-wide text-stone-600';
 
 export const ReportesAdmin: React.FC<ReportesAdminProps> = ({ onMostrarMensaje, onSetCargando }) => {
   const hoy = new Date();
@@ -75,7 +75,7 @@ export const ReportesAdmin: React.FC<ReportesAdminProps> = ({ onMostrarMensaje, 
     <section>
       <div className="mb-6">
         <h3 className="font-serif text-2xl font-bold text-stone-900">Reportes</h3>
-        <p className="text-sm text-stone-500">Mira el informe en pantalla y luego descárgalo en PDF o Excel.</p>
+        <p className="text-sm text-stone-600">Mira el informe en pantalla y luego descárgalo en PDF o Excel.</p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Tipo de reporte">
@@ -144,7 +144,7 @@ export const ReportesAdmin: React.FC<ReportesAdminProps> = ({ onMostrarMensaje, 
               <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white">
                 <h4 className="px-4 pt-4 font-serif text-lg font-bold text-stone-900">{titulo}</h4>
                 <table className="mt-2 w-full text-left text-sm">
-                  <thead className="bg-stone-50 text-xs uppercase text-stone-500">
+                  <thead className="bg-stone-50 text-xs uppercase text-stone-600">
                     <tr>
                       <th className={claseTh}>{primera}</th><th className={claseTh}>Ventas</th>
                       <th className={claseTh}>Ingresos</th><th className={claseTh}>Costo</th><th className={claseTh}>Ganancia</th>
@@ -158,7 +158,7 @@ export const ReportesAdmin: React.FC<ReportesAdminProps> = ({ onMostrarMensaje, 
                         <td className={`${claseTd} font-semibold text-emerald-700`}>{moneda.format(f.ganancia)}</td>
                       </tr>
                     ))}
-                    {filas.length === 0 && <tr><td colSpan={5} className="px-4 py-6 text-center text-stone-500">No hay ventas confirmadas en este rango.</td></tr>}
+                    {filas.length === 0 && <tr><td colSpan={5} className="px-4 py-6 text-center text-stone-600">No hay ventas confirmadas en este rango.</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -179,7 +179,7 @@ export const ReportesAdmin: React.FC<ReportesAdminProps> = ({ onMostrarMensaje, 
             return (
               <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-stone-50 text-xs uppercase text-stone-500">
+                  <thead className="bg-stone-50 text-xs uppercase text-stone-600">
                     <tr>
                       <th className={claseTh}>Producto</th><th className={claseTh}>Unidades</th>
                       <th className={claseTh}>Ingresos</th><th className={claseTh}>Costo</th><th className={claseTh}>Ganancia</th>
@@ -193,7 +193,7 @@ export const ReportesAdmin: React.FC<ReportesAdminProps> = ({ onMostrarMensaje, 
                         <td className={`${claseTd} font-semibold text-emerald-700`}>{moneda.format(f.ganancia)}</td>
                       </tr>
                     ))}
-                    {d.filas.length === 0 && <tr><td colSpan={5} className="px-4 py-6 text-center text-stone-500">No hay ventas confirmadas en este rango.</td></tr>}
+                    {d.filas.length === 0 && <tr><td colSpan={5} className="px-4 py-6 text-center text-stone-600">No hay ventas confirmadas en este rango.</td></tr>}
                   </tbody>
                   <tfoot className="bg-primary/10 text-sm font-semibold text-nube-oscuro">
                     <tr>
@@ -212,7 +212,7 @@ export const ReportesAdmin: React.FC<ReportesAdminProps> = ({ onMostrarMensaje, 
             return (
               <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-stone-50 text-xs uppercase text-stone-500">
+                  <thead className="bg-stone-50 text-xs uppercase text-stone-600">
                     <tr>
                       <th className={claseTh}>Producto</th><th className={claseTh}>Categoría</th><th className={claseTh}>Stock</th>
                       <th className={claseTh}>Mínimo</th><th className={claseTh}>Costo</th><th className={claseTh}>Valor a costo</th>

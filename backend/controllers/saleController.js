@@ -1,6 +1,7 @@
 const { Venta, Usuario, Cliente, DetalleVenta, Producto } = require('../models');
 const { crearVenta, obtenerVentas: obtenerVentasService, confirmarPago, obtenerVentasDeVendedor,cancelarVenta,
     guardarComprobante, obtenerPedidosDeCliente, obtenerPedidosEnLinea, rechazarPago, avanzarEstadoPedido } = require('../services/saleService');
+const { carnetValido, direccionValida } = require('../utils/validaciones');
 
 
 const registrarVenta = async (req, res) => {
@@ -18,6 +19,10 @@ const registrarVenta = async (req, res) => {
         if (!usuario) throw new Error('La sesión no contiene un usuario válido.');
 
         const direccion = typeof direccion_entrega === 'string' && direccion_entrega.trim() ? direccion_entrega.trim() : null;
+        if (direccion && !direccionValida(direccion)) throw new Error('La dirección debe tener al menos 5 caracteres.');
+        if (typeof carnet === 'string' && carnet.trim() && !carnetValido(carnet)) {
+            throw new Error('El carnet solo puede tener letras, números y un guion (5 a 20 caracteres).');
+        }
         const conEnvio = con_envio === true;
 
         if (!direccion && (lat === null || lng === null)) {

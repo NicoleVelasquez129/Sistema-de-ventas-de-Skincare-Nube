@@ -1,4 +1,8 @@
 const { Cliente } = require("../models");
+const { nombreValido, celularValido, carnetValido } = require("../utils/validaciones");
+
+const limpiar = (v) => (typeof v === "string" && v.trim() ? v.trim() : null);
+const campoInformado = (v) => v !== undefined && v !== null && !(typeof v === "string" && !v.trim());
 
 const obtenerClientesService = async () => {
     return await Cliente.findAll();
@@ -6,21 +10,26 @@ const obtenerClientesService = async () => {
 
 const crearClienteService = async (datos) => {
     const { nombre, telefono, correo } = datos;
-    if (!nombre) throw new Error("El nombre del cliente es obligatorio.");
-    return await Cliente.create({ nombre, telefono, correo });
+    if (!nombreValido(nombre)) throw new Error("El nombre del cliente debe tener solo letras y espacios.");
+    if (campoInformado(telefono) && !celularValido(telefono)) throw new Error("El teléfono debe tener 8 números.");
+    return await Cliente.create({ nombre: nombre.trim(), telefono: limpiar(telefono), correo });
 };
-
-const limpiar = (v) => (typeof v === "string" && v.trim() ? v.trim() : null);
 
 const buscarPorCarnetService = async (carnet) => {
     const valor = limpiar(carnet);
-    if (!valor) return null;
+    if (!valor || !carnetValido(valor)) return null;
     return await Cliente.findOne({ where: { carnet: valor } });
 };
 
 // Si el carnet ya existe, actualiza sus datos con lo que confirmó el vendedor; si no, crea el cliente
 const buscarOCrearClienteService = async (datos, transaction) => {
-    if (!limpiar(datos?.nombre)) throw new Error("El nombre del cliente es obligatorio.");
+    if (!nombreValido(datos?.nombre)) throw new Error("El nombre del cliente debe tener solo letras y espacios.");
+    if (campoInformado(datos?.telefono) && !celularValido(datos.telefono)) {
+        throw new Error("El teléfono del cliente debe tener 8 números.");
+    }
+    if (campoInformado(datos?.carnet) && !carnetValido(datos.carnet)) {
+        throw new Error("El carnet solo puede tener letras, números y un guion (5 a 20 caracteres).");
+    }
 
     const correo = limpiar(datos.correo);
     if (correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
@@ -34,7 +43,8 @@ const buscarOCrearClienteService = async (datos, transaction) => {
         direccion: limpiar(datos.direccion)
     };
 
-    const carnet = limpiar(datos.carnet);
+    const carnetLimpio = limpiar(datos.carnet);
+    const carnet = carnetLimpio ? carnetLimpio.toUpperCase() : null;
     if (carnet) {
         const existente = await Cliente.findOne({ where: { carnet }, transaction });
         if (existente) {

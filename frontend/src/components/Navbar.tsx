@@ -55,7 +55,8 @@ export const Navbar: React.FC<NavbarProps> = ({ cartCount, onOpenCart, usuario, 
           {esCatalogo && (
             <button
               onClick={onOpenCart}
-              className="relative flex items-center space-x-2 px-4 py-2.5 rounded-xl text-white font-medium shadow-sm transition-transform active:scale-95"
+              aria-label="Abrir canasta"
+              className="relative flex items-center space-x-2 px-4 py-2.5 rounded-xl text-[#0f3d38] font-medium shadow-sm transition-transform active:scale-95"
               style={{ backgroundColor: '#68c3b7' }}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

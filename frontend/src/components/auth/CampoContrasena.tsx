@@ -16,7 +16,7 @@ export const CampoContrasena: React.FC<CampoContrasenaProps> = ({ id, etiqueta, 
 
   return (
     <div>
-      <label htmlFor={id} className="mb-1 block text-xs font-semibold uppercase tracking-wide text-stone-500">
+      <label htmlFor={id} className="mb-1 block text-xs font-semibold uppercase tracking-wide text-stone-600">
         {etiqueta}
       </label>
       <div className="relative">
@@ -32,7 +32,7 @@ export const CampoContrasena: React.FC<CampoContrasenaProps> = ({ id, etiqueta, 
           type="button"
           onClick={() => setVisible(v => !v)}
           aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-          className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-stone-400 hover:text-stone-700"
+          className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-stone-600 hover:text-stone-700"
         >
           {visible ? (
             <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
@@ -49,7 +49,7 @@ export const CampoContrasena: React.FC<CampoContrasenaProps> = ({ id, etiqueta, 
       {(ayuda || error) && (
         <p
           role={error ? 'alert' : undefined}
-          className={`mt-1 text-xs ${error ? 'text-rose-600' : 'text-stone-400'}`}
+          className={`mt-1 text-xs ${error ? 'text-rose-600' : 'text-stone-600'}`}
         >
           {error || ayuda}
         </p>

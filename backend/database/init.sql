@@ -190,8 +190,8 @@ INSERT INTO productos (nombre, descripcion, precio, costo, stock, stock_minimo, 
 
 -- Ana tiene carnet (sirve para probar el autorrelleno); Luis no.
 INSERT INTO clientes (nombre, carnet, telefono, correo, direccion) VALUES
-('Ana Gomez', '4567890', '+591 71234567', 'ana.gomez@gmail.com', 'Av. América 123, Cochabamba'),
-('Luis Perez', NULL, '+591 79876543', 'luis.perez@hotmail.com', NULL);
+('Ana Gomez', '4567890', '71234567', 'ana.gomez@gmail.com', 'Av. América 123, Cochabamba'),
+('Luis Perez', NULL, '79876543', 'luis.perez@hotmail.com', NULL);
 
 -- ========================================================
 -- USUARIOS: no se insertan aquí a propósito (un hash de ejemplo no

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Producto } from '../interfaces';
 import {
+  cancelarVentaAPI,
   buscarClientePorCarnetAPI,
   confirmarPagoAPI,
   guardarFacturaPDF,
@@ -9,6 +10,7 @@ import {
   registrarVentaVendedorAPI,
 } from '../services/apiService';
 import type { VentaVendedorAPI } from '../services/apiService';
+import { carnetValido, celularValido, filtroCarnet, nombreValido, soloDigitos, soloLetras } from '../utils/validaciones';
 
 interface LineaVenta {
   producto: Producto;
@@ -67,9 +69,8 @@ export const Vender: React.FC = () => {
   const [misVentas, setMisVentas] = useState<VentaVendedorAPI[]>([]);
   const [metodoPorVenta, setMetodoPorVenta] = useState<Record<number, string>>({});
   const [confirmando, setConfirmando] = useState<number | null>(null);
+  const [cancelando, setCancelando] = useState<number | null>(null);
 
-  const [desde, setDesde] = useState('');
-  const [hasta, setHasta] = useState('');
   const [descargando, setDescargando] = useState<number | null>(null);
 
   const cargarProductos = useCallback(async () => {
@@ -104,6 +105,7 @@ export const Vender: React.FC = () => {
     setClienteEncontrado(false);
     setDatosConfirmados(false);
     setMensajeCarnet('');
+    setErrores({});
   };
 
   const editarDato = (setter: (valor: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,13 +116,18 @@ export const Vender: React.FC = () => {
 
   const buscarCarnet = async () => {
     if (!carnet.trim()) return;
+    if (!carnetValido(carnet)) {
+      setClienteEncontrado(false);
+      setMensajeCarnet('El carnet solo puede tener letras, números y un guion (5 a 20 caracteres).');
+      return;
+    }
     setBuscandoCarnet(true);
     setError('');
     try {
       const cliente = await buscarClientePorCarnetAPI(carnet);
       if (cliente) {
         setNombre(cliente.nombre || '');
-        setTelefono(cliente.telefono || '');
+        setTelefono((cliente.telefono || '').replace(/\D/g, '').slice(-8));
         setCorreo(cliente.correo || '');
         setDireccion(cliente.direccion || '');
         setClienteEncontrado(true);
@@ -185,7 +192,9 @@ export const Vender: React.FC = () => {
 
     const nuevos: Record<string, string> = {};
     if (lineas.length === 0) nuevos.productos = 'Agrega al menos un producto.';
-    if (!nombre.trim()) nuevos.nombre = 'Escribe el nombre del cliente.';
+    if (carnet.trim() && !carnetValido(carnet.trim())) nuevos.carnet = 'El carnet solo puede tener letras, números y un guion (5 a 20 caracteres).';
+    if (!nombreValido(nombre)) nuevos.nombre = 'Escribe el nombre del cliente usando solo letras.';
+    if (telefono.trim() && !celularValido(telefono)) nuevos.telefono = 'El teléfono debe tener 8 números.';
     if (correo.trim() && !REGEX_CORREO.test(correo.trim())) nuevos.correo = 'Ingresa un correo válido.';
     if (clienteEncontrado && !datosConfirmados) nuevos.confirmacion = 'Confirma que los datos del cliente son correctos.';
     setErrores(nuevos);
@@ -239,6 +248,22 @@ export const Vender: React.FC = () => {
     }
   };
 
+  const cancelar = async (idVenta: number) => {
+    if (!window.confirm(`¿Cancelar la venta #${idVenta} y devolver sus productos al stock?`)) return;
+    setCancelando(idVenta);
+    setError('');
+    setExito('');
+    try {
+      await cancelarVentaAPI(idVenta);
+      setExito(`Venta #${idVenta} cancelada y stock devuelto.`);
+      await Promise.all([cargarProductos(), cargarMisVentas()]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo cancelar la venta.');
+    } finally {
+      setCancelando(null);
+    }
+  };
+
   const descargarTicket = async (idVenta: number) => {
     setDescargando(idVenta);
     setError('');
@@ -264,7 +289,7 @@ export const Vender: React.FC = () => {
   return (
     <div className="fade-in mx-auto max-w-6xl px-4 py-8 sm:px-8">
       <h2 className="font-serif text-3xl font-bold text-stone-900">Registrar venta</h2>
-      <p className="mb-6 text-sm text-stone-500">
+      <p className="mb-6 text-sm text-stone-600">
         Registra la venta de tienda, confirma el cobro y revisa lo que vendiste.
       </p>
 
@@ -291,9 +316,10 @@ export const Vender: React.FC = () => {
               <input
                 id="carnet"
                 autoComplete="off"
+                maxLength={20}
                 className={claseControl}
                 value={carnet}
-                onChange={e => cambiarCarnet(e.target.value)}
+                onChange={e => cambiarCarnet(filtroCarnet(e.target.value))}
                 onKeyDown={e => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
@@ -306,19 +332,21 @@ export const Vender: React.FC = () => {
                 {buscandoCarnet ? 'Buscando…' : 'Buscar'}
               </button>
             </div>
+            <ErrorCampo texto={errores.carnet} />
             {mensajeCarnet && (
-              <p className={`mt-2 text-xs ${clienteEncontrado ? 'text-emerald-700' : 'text-stone-500'}`}>{mensajeCarnet}</p>
+              <p className={`mt-2 text-xs ${clienteEncontrado ? 'text-emerald-700' : 'text-stone-600'}`}>{mensajeCarnet}</p>
             )}
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div>
                 <label className="mb-1 block text-xs font-semibold text-stone-600" htmlFor="nombre">Nombre *</label>
-                <input id="nombre" autoComplete="off" className={claseControl} value={nombre} onChange={editarDato(setNombre)} />
+                <input id="nombre" autoComplete="off" maxLength={150} className={claseControl} value={nombre} onChange={editarDato(v => setNombre(soloLetras(v)))} />
                 <ErrorCampo texto={errores.nombre} />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-stone-600" htmlFor="telefono">Teléfono</label>
-                <input id="telefono" autoComplete="off" className={claseControl} value={telefono} onChange={editarDato(setTelefono)} />
+                <input id="telefono" type="tel" inputMode="numeric" maxLength={8} autoComplete="off" className={claseControl} value={telefono} onChange={editarDato(v => setTelefono(soloDigitos(v, 8)))} />
+                <ErrorCampo texto={errores.telefono} />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-stone-600" htmlFor="correo">Correo</label>
@@ -355,13 +383,13 @@ export const Vender: React.FC = () => {
                 <li key={p.id_producto} className="flex items-center justify-between gap-3 py-2">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-stone-800">{p.nombre}</p>
-                    <p className="text-xs text-stone-500">
+                    <p className="text-xs text-stone-600">
                       {moneda.format(Number(p.precio))} · Stock: {Number(p.stock)}
                     </p>
                   </div>
                   <button
                     type="button"
-                    className="rounded-lg border border-primary px-3 py-1 text-sm font-semibold text-primary hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded-lg border border-primary px-3 py-1 text-sm font-semibold text-nube-oscuro hover:bg-primary hover:text-nube-oscuro disabled:cursor-not-allowed disabled:opacity-40"
                     onClick={() => agregar(p)}
                     disabled={Number(p.stock) <= 0}
                   >
@@ -369,7 +397,7 @@ export const Vender: React.FC = () => {
                   </button>
                 </li>
               ))}
-              {productosFiltrados.length === 0 && <li className="py-3 text-sm text-stone-500">No hay productos.</li>}
+              {productosFiltrados.length === 0 && <li className="py-3 text-sm text-stone-600">No hay productos.</li>}
             </ul>
             <ErrorCampo texto={lineas.length === 0 ? errores.productos : undefined} />
           </section>
@@ -379,7 +407,7 @@ export const Vender: React.FC = () => {
         <aside className={`${claseTarjeta} h-fit lg:sticky lg:top-24`}>
           <h3 className="mb-3 font-semibold text-stone-900">Resumen de la venta</h3>
           {lineas.length === 0 ? (
-            <p className="text-sm text-stone-500">Aún no agregaste productos.</p>
+            <p className="text-sm text-stone-600">Aún no agregaste productos.</p>
           ) : (
             <ul className="mb-4 divide-y divide-stone-100">
               {lineas.map(l => (
@@ -428,7 +456,7 @@ export const Vender: React.FC = () => {
             ['Por cobrar', moneda.format(resumen.porCobrar)],
           ].map(([titulo, valor]) => (
             <div key={titulo} className={claseTarjeta}>
-              <p className="text-xs font-semibold uppercase text-stone-500">{titulo}</p>
+              <p className="text-xs font-semibold uppercase text-stone-600">{titulo}</p>
               <p className="mt-1 text-xl font-bold text-stone-900">{valor}</p>
             </div>
           ))}
@@ -436,7 +464,7 @@ export const Vender: React.FC = () => {
 
         <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="bg-stone-50 text-xs uppercase text-stone-500">
+            <thead className="bg-stone-50 text-xs uppercase text-stone-600">
               <tr>
                 <th className="px-4 py-3">#</th>
                 <th className="px-4 py-3">Fecha</th>
@@ -444,6 +472,7 @@ export const Vender: React.FC = () => {
                 <th className="px-4 py-3">Total</th>
                 <th className="px-4 py-3">Pedido</th>
                 <th className="px-4 py-3">Pago</th>
+                <th className="px-4 py-3">Acciones</th>
                 <th className="px-4 py-3">Ticket</th>
               </tr>
             </thead>
@@ -451,6 +480,11 @@ export const Vender: React.FC = () => {
               {misVentas.map(v => {
                 const pago = v.pagos && v.pagos[0];
                 const puedeCobrar = v.estado === 'registrada' && v.estado_pedido === 'pendiente';
+                const fechaCreacion = Date.parse(v.createdAt || v.fecha);
+                const puedeCancelar =
+                  v.estado === 'registrada' &&
+                  v.estado_pedido === 'pendiente' &&
+                  Date.now() - fechaCreacion <= 20 * 60 * 1000;
                 return (
                   <tr key={v.id_venta}>
                     <td className="px-4 py-3 font-medium">{v.id_venta}</td>
@@ -482,6 +516,18 @@ export const Vender: React.FC = () => {
                       ) : '—'}
                     </td>
                     <td className="px-4 py-3">
+                      {puedeCancelar ? (
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-rose-700 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-rose-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                          onClick={() => cancelar(v.id_venta)}
+                          disabled={cancelando === v.id_venta}
+                        >
+                          {cancelando === v.id_venta ? 'Cancelando…' : 'Cancelar pedido'}
+                        </button>
+                      ) : '—'}
+                    </td>
+                    <td className="px-4 py-3">
                       {v.estado === 'registrada' && v.estado_pedido !== 'pendiente' ? (
                         <button
                           type="button"
@@ -497,7 +543,7 @@ export const Vender: React.FC = () => {
                 );
               })}
               {misVentas.length === 0 && (
-                <tr><td colSpan={7} className="px-4 py-6 text-center text-stone-500">Todavía no registraste ventas.</td></tr>
+                <tr><td colSpan={8} className="px-4 py-6 text-center text-stone-600">Todavía no registraste ventas.</td></tr>
               )}
             </tbody>
           </table>

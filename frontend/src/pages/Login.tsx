@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { loginAPI, olvideContrasenaAPI, registroAPI } from '../services/authService';
 import type { UsuarioSesion } from '../services/authService';
 import { CampoContrasena } from '../components/auth/CampoContrasena.tsx';
+import { soloLetras, soloDigitos, nombreValido, celularValido } from '../utils/validaciones';
 
 interface LoginProps {
   onLogin: (usuario: UsuarioSesion) => void;
@@ -12,7 +13,7 @@ type Vista = 'login' | 'registro' | 'olvide';
 
 const claseCampo =
   'w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-800 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30';
-const claseEtiqueta = 'mb-1 block text-xs font-semibold uppercase tracking-wide text-stone-500';
+const claseEtiqueta = 'mb-1 block text-xs font-semibold uppercase tracking-wide text-stone-600';
 const claseBoton =
   'w-full rounded-xl bg-primary py-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-primaryFocus disabled:opacity-60';
 
@@ -74,9 +75,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     e.preventDefault();
     setError('');
     const nuevos: Record<string, string> = {};
-    if (!nombre.trim()) nuevos.nombre = 'Escribe tu nombre.';
+    if (!nombreValido(nombre)) nuevos.nombre = 'Escribe tu nombre usando solo letras.';
     if (!REGEX_CORREO.test(correo.trim())) nuevos.correo = 'Ingresa un correo válido.';
-    if (!telefono.trim()) nuevos.telefono = 'Escribe tu celular.';
+    if (!celularValido(telefono)) nuevos.telefono = 'El celular debe tener 8 números.';
     if (contrasena.length < 8 || !/[A-Za-z]/.test(contrasena) || !/\d/.test(contrasena)) {
       nuevos.contrasena = 'Mínimo 8 caracteres, con letras y números.';
     }
@@ -85,7 +86,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     if (Object.keys(nuevos).length) return;
     setProcesando(true);
     try {
-      const res = await registroAPI({ nombre, correo, contrasena, telefono: telefono.trim() });
+      const res = await registroAPI({ nombre: nombre.trim(), correo, contrasena, telefono });
       if (res.success && res.usuario) entrar(res.usuario);
       else setError(res.error || 'No se pudo crear la cuenta.');
     } catch {
@@ -142,7 +143,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   type="button"
                   aria-selected={vista === v}
                   onClick={() => cambiarVista(v)}
-                  className={`rounded-lg py-2.5 transition ${vista === v ? 'bg-white text-nube-oscuro shadow-sm' : 'text-stone-500 hover:text-stone-800'}`}
+                  className={`rounded-lg py-2.5 transition ${vista === v ? 'bg-white text-nube-oscuro shadow-sm' : 'text-stone-600 hover:text-stone-800'}`}
                 >
                   {v === 'login' ? 'Ingresar' : 'Crear cuenta'}
                 </button>
@@ -154,7 +155,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <form onSubmit={iniciarSesion} className="space-y-4" noValidate>
               <div>
                 <h1 className="font-serif text-2xl font-bold text-stone-900">Bienvenida de vuelta</h1>
-                <p className="mt-1 text-sm text-stone-500">Ingresa con tu cuenta para continuar.</p>
+                <p className="mt-1 text-sm text-stone-600">Ingresa con tu cuenta para continuar.</p>
               </div>
               <div>
                 <label htmlFor="l-correo" className={claseEtiqueta}>Correo</label>
@@ -171,7 +172,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <button type="submit" disabled={procesando} className={claseBoton}>
                 {procesando ? 'Ingresando…' : 'Ingresar'}
               </button>
-              <p className="text-center text-sm text-stone-500">
+              <p className="text-center text-sm text-stone-600">
                 ¿Aún no tienes cuenta?{' '}
                 <button type="button" onClick={() => cambiarVista('registro')} className="font-semibold text-nube-oscuro hover:underline">
                   Créala aquí
@@ -184,11 +185,11 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <form onSubmit={crearCuenta} className="space-y-4" noValidate>
               <div>
                 <h1 className="font-serif text-2xl font-bold text-stone-900">Crea tu cuenta</h1>
-                <p className="mt-1 text-sm text-stone-500">La necesitas para comprar y recibir tu factura.</p>
+                <p className="mt-1 text-sm text-stone-600">La necesitas para comprar y recibir tu factura.</p>
               </div>
               <div>
                 <label htmlFor="r-nombre" className={claseEtiqueta}>Nombre completo</label>
-                <input id="r-nombre" value={nombre} onChange={e => setNombre(e.target.value)} maxLength={150} autoComplete="off" className={claseCampo} />
+                <input id="r-nombre" value={nombre} onChange={e => setNombre(soloLetras(e.target.value))} maxLength={150} autoComplete="off" className={claseCampo} />
                 <ErrorCampo texto={errores.nombre} />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -199,7 +200,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
                 <div>
                   <label htmlFor="r-tel" className={claseEtiqueta}>Celular</label>
-                  <input id="r-tel" type="tel" value={telefono} onChange={e => setTelefono(e.target.value)} maxLength={50} autoComplete="off" className={claseCampo} />
+                  <input id="r-tel" type="tel" inputMode="numeric" value={telefono} onChange={e => setTelefono(soloDigitos(e.target.value, 8))} maxLength={8} autoComplete="off" className={claseCampo} />
                   <ErrorCampo texto={errores.telefono} />
                 </div>
               </div>
@@ -224,7 +225,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <form onSubmit={pedirEnlace} className="space-y-4" noValidate>
               <div>
                 <h1 className="font-serif text-2xl font-bold text-stone-900">Recupera tu contraseña</h1>
-                <p className="mt-1 text-sm text-stone-500">Escribe tu correo y te enviaremos un enlace para elegir una nueva. Vale 1 hora.</p>
+                <p className="mt-1 text-sm text-stone-600">Escribe tu correo y te enviaremos un enlace para elegir una nueva. Vale 1 hora.</p>
               </div>
               {aviso ? (
                 <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">

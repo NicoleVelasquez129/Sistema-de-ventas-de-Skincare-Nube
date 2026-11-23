@@ -23,7 +23,7 @@ const MAX_IMAGEN_BYTES = 5 * 1024 * 1024;
 
 const claseCampo =
   'w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30';
-const claseEtiquetaCampo = 'mb-1 block text-xs font-semibold uppercase tracking-wide text-stone-500';
+const claseEtiquetaCampo = 'mb-1 block text-xs font-semibold uppercase tracking-wide text-stone-600';
 
 const dinero = (valor: number | string) => `$${Number(valor).toFixed(2)}`;
 
@@ -109,8 +109,8 @@ const FormularioProducto: React.FC<FormularioProps> = ({
     if (stock === '' || !Number.isInteger(stockNum) || stockNum < 1 || stockNum > 200) {
       return onMostrarMensaje('El stock debe ser un número entero entre 1 y 200.', true);
     }
-    if (stockMinimo === '' || !Number.isInteger(minimoNum) || minimoNum < 0 || minimoNum > 200) {
-      return onMostrarMensaje('El stock mínimo debe ser un número entero entre 0 y 200.', true);
+    if (stockMinimo === '' || !Number.isInteger(minimoNum) || minimoNum < 1 || minimoNum > 200) {
+      return onMostrarMensaje('El stock mínimo debe ser un número entero entre 1 y 200.', true);
     }
 
     setGuardando(true);
@@ -160,7 +160,7 @@ const FormularioProducto: React.FC<FormularioProps> = ({
       >
         <header className="flex items-center justify-between border-b border-stone-200 bg-nube-crema px-6 py-4">
           <h3 className="font-serif text-xl font-bold text-stone-900">{producto ? 'Editar producto' : 'Nuevo producto'}</h3>
-          <button type="button" onClick={onCerrar} aria-label="Cerrar" className="rounded-full p-2 text-stone-500 hover:bg-stone-200/70">
+          <button type="button" onClick={onCerrar} aria-label="Cerrar" className="rounded-full p-2 text-stone-600 hover:bg-stone-200/70">
             <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
             </svg>
@@ -175,7 +175,7 @@ const FormularioProducto: React.FC<FormularioProps> = ({
               {vistaPrevia ? (
                 <img src={vistaPrevia} alt="Vista previa" className="h-full w-full object-cover" />
               ) : (
-                <span className="px-4 text-center text-xs text-stone-400">Sin imagen</span>
+                <span className="px-4 text-center text-xs text-stone-600">Sin imagen</span>
               )}
             </div>
             <div className="mt-3 flex flex-col gap-2">
@@ -188,7 +188,7 @@ const FormularioProducto: React.FC<FormularioProps> = ({
                   Quitar imagen
                 </button>
               )}
-              <p className="text-[11px] leading-snug text-stone-400">JPG, PNG o WEBP, máximo 5 MB. En el celular puedes usar la galería o la cámara.</p>
+              <p className="text-[11px] leading-snug text-stone-600">JPG, PNG o WEBP, máximo 5 MB. En el celular puedes usar la galería o la cámara.</p>
               <div>
                 <label htmlFor="imagen-url" className={claseEtiquetaCampo}>o pega una URL</label>
                 <input
@@ -233,17 +233,17 @@ const FormularioProducto: React.FC<FormularioProps> = ({
 
             <div>
               <label htmlFor="p-precio" className={claseEtiquetaCampo}>Precio *</label>
-              <input id="p-precio" type="number" min="0" step="0.01" inputMode="decimal" value={precio} onChange={e => setPrecio(e.target.value)} className={claseCampo} />
+              <input id="p-precio" type="number" min="0.01" max="5000" step="0.01" inputMode="decimal" value={precio} onChange={e => setPrecio(e.target.value)} className={claseCampo} />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="p-stock" className={claseEtiquetaCampo}>Stock *</label>
-                <input id="p-stock" type="number" min="0" step="1" inputMode="numeric" value={stock} onChange={e => setStock(e.target.value)} className={claseCampo} />
+                <input id="p-stock" type="number" min="1" max="200" step="1" inputMode="numeric" value={stock} onChange={e => setStock(e.target.value)} className={claseCampo} />
               </div>
               <div>
                 <label htmlFor="p-minimo" className={claseEtiquetaCampo}>Stock mín.</label>
-                <input id="p-minimo" type="number" min="0" step="1" inputMode="numeric" value={stockMinimo} onChange={e => setStockMinimo(e.target.value)} className={claseCampo} />
+                <input id="p-minimo" type="number" min="1" max="200" step="1" inputMode="numeric" value={stockMinimo} onChange={e => setStockMinimo(e.target.value)} className={claseCampo} />
               </div>
             </div>
 
@@ -265,7 +265,7 @@ const FormularioProducto: React.FC<FormularioProps> = ({
             <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 sm:col-span-2">
               <span>
                 <span className="block text-sm font-semibold text-stone-800">{activo ? 'Activo: visible para los clientes' : 'Inactivo: oculto para los clientes'}</span>
-                <span className="block text-xs text-stone-500">Tú siempre lo ves en este panel, esté activo o no.</span>
+                <span className="block text-xs text-stone-600">Tú siempre lo ves en este panel, esté activo o no.</span>
               </span>
               <input type="checkbox" className="toggle toggle-primary" checked={activo} onChange={e => setActivo(e.target.checked)} />
             </label>
@@ -375,7 +375,7 @@ export const ProductosAdmin: React.FC<ProductosAdminProps> = ({ onMostrarMensaje
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="font-serif text-2xl font-bold text-stone-900">Productos</h3>
-          <p className="text-sm text-stone-500">{productos.length} en total · tú ves todos, los clientes solo los activos.</p>
+          <p className="text-sm text-stone-600">{productos.length} en total · tú ves todos, los clientes solo los activos.</p>
         </div>
         <button
           type="button"
@@ -413,7 +413,7 @@ export const ProductosAdmin: React.FC<ProductosAdminProps> = ({ onMostrarMensaje
 
       <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white">
         <table className="w-full min-w-[720px] text-left text-sm">
-          <thead className="bg-nube-crema text-xs uppercase tracking-wide text-stone-500">
+          <thead className="bg-nube-crema text-xs uppercase tracking-wide text-stone-600">
             <tr>
               <th className="px-4 py-3">Producto</th>
               <th className="px-4 py-3">Precio</th>
@@ -425,7 +425,7 @@ export const ProductosAdmin: React.FC<ProductosAdminProps> = ({ onMostrarMensaje
           <tbody className="divide-y divide-stone-100">
             {visibles.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-stone-400">
+                <td colSpan={5} className="px-4 py-10 text-center text-stone-600">
                   {productos.length === 0 ? 'Aún no hay productos. Crea el primero.' : 'No hay productos con ese filtro.'}
                 </td>
               </tr>
@@ -442,12 +442,12 @@ export const ProductosAdmin: React.FC<ProductosAdminProps> = ({ onMostrarMensaje
                         {p.imagen ? (
                           <img src={urlImagen(p.imagen)} alt={p.nombre} className="h-full w-full object-cover" />
                         ) : (
-                          <div className="flex h-full w-full items-center justify-center text-[10px] text-stone-400">Sin foto</div>
+                          <div className="flex h-full w-full items-center justify-center text-[10px] text-stone-600">Sin foto</div>
                         )}
                       </div>
                       <div className="min-w-0">
                         <p className="truncate font-semibold text-stone-900">{p.nombre}</p>
-                        <p className="text-xs text-stone-500">
+                        <p className="text-xs text-stone-600">
                           {p.Categoria?.nombre ?? 'Sin categoría'}
                           {p.etiqueta && <span className="ml-2 rounded-full bg-stone-900 px-2 py-0.5 text-[10px] font-bold uppercase text-white">{p.etiqueta}</span>}
                         </p>
@@ -469,7 +469,7 @@ export const ProductosAdmin: React.FC<ProductosAdminProps> = ({ onMostrarMensaje
                         onChange={() => cambiarEstado(p)}
                         aria-label={inactivo ? `Activar ${p.nombre}` : `Desactivar ${p.nombre}`}
                       />
-                      <span className="text-xs text-stone-500">{inactivo ? 'Inactivo' : 'Activo'}</span>
+                      <span className="text-xs text-stone-600">{inactivo ? 'Inactivo' : 'Activo'}</span>
                     </label>
                   </td>
                   <td className="px-4 py-3">

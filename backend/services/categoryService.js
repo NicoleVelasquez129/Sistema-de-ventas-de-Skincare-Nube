@@ -1,5 +1,6 @@
 const { Categoria, Producto } = require("../models");
 const { fn, col, where } = require("sequelize");
+const { categoriaValida } = require("../utils/validaciones");
 
 const errorConEstado = (mensaje, estado) => {
     const err = new Error(mensaje);
@@ -10,8 +11,8 @@ const errorConEstado = (mensaje, estado) => {
 // Valida nombre/descripcion y evita nombres repetidos (sin distinguir mayúsculas)
 const validarCategoria = async (datos, idActual = null) => {
     if (datos.nombre !== undefined) {
-        if (typeof datos.nombre !== "string" || datos.nombre.trim() === "" || datos.nombre.trim().length > 100) {
-            throw new Error("El nombre de la categoría es obligatorio y debe tener máximo 100 caracteres.");
+        if (!categoriaValida(datos.nombre)) {
+            throw new Error("El nombre de la categoría debe tener solo letras y espacios (entre 2 y 100 caracteres).");
         }
         const repetida = await Categoria.findOne({
             where: where(fn("LOWER", col("nombre")), datos.nombre.trim().toLowerCase())

@@ -72,7 +72,7 @@ export const MisPedidos: React.FC = () => {
     <section className="mx-auto max-w-3xl px-4 py-8">
       <h1 className="mb-6 font-serif text-2xl font-bold text-stone-900">Mis pedidos</h1>
       {error && <p role="alert" className="mb-4 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
-      {cargando && <p className="text-sm text-stone-500">Cargando…</p>}
+      {cargando && <p className="text-sm text-stone-600">Cargando…</p>}
       {!cargando && pedidos.length === 0 && (
         <p className="text-sm text-stone-600">
           Aún no tienes pedidos. <Link to="/" className="ml-1 inline-block rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primaryFocus">Ir al catálogo</Link>
@@ -88,7 +88,7 @@ export const MisPedidos: React.FC = () => {
               <header className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <p className="font-semibold text-stone-900">Pedido #{pedido.id_venta}</p>
-                  <p className="text-xs text-stone-500">{new Date(pedido.fecha).toLocaleString('es-BO')}</p>
+                  <p className="text-xs text-stone-600">{new Date(pedido.fecha).toLocaleString('es-BO')}</p>
                 </div>
                 <span className={`rounded-full px-3 py-1 text-xs font-semibold ${estado.clase}`}>{estado.texto}</span>
               </header>
@@ -139,12 +139,13 @@ export const MisPedidos: React.FC = () => {
                   <details>
                     <summary className="cursor-pointer text-sm font-semibold text-stone-700">Ver QR de pago</summary>
                     <div className="mt-3 flex justify-center"><QrPagoFalso semilla={pedido.id_venta} /></div>
-                    <p className="mt-2 text-center text-xs text-stone-500">
+                    <p className="mt-2 text-center text-xs text-stone-600">
                       QR ilustrativo; no procesa pagos. Paga por el canal indicado por la tienda.
                     </p>
                   </details>
                   <input
                     type="file"
+                    aria-label="Subir comprobante de pago (imagen o PDF)"
                     accept="image/jpeg,image/png,image/webp,application/pdf"
                     onChange={e => setArchivos(actual => ({ ...actual, [pedido.id_venta]: e.target.files?.[0] ?? null }))}
                     className="w-full text-sm"
