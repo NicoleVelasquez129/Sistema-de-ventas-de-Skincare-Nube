@@ -93,12 +93,12 @@ frontend/
 
 ## ⚙️ 4. Instalación y scripts
 
-**Requisitos:** Node.js 18+ y el **backend funcionando** en `http://localhost:3000`.
+**Requisitos:** Node.js 20.19+ (o 22.12+) y el **backend funcionando** en `http://localhost:3000`.
 
 ```bash
-git clone https://github.com/NicoleVelasquez129/Sistema-ventas.git
-cd Sistema-ventas/frontend
-npm install
+git clone https://github.com/NicoleVelasquez129/Sistema-de-ventas-de-Skincare-Nube.git
+cd Sistema-de-ventas-de-Skincare-Nube/frontend
+npm ci
 npm run dev
 ```
 

@@ -135,15 +135,17 @@ backend/
 
 ## ⚙️ 5. Instalación y puesta en marcha
 
-**Requisitos:** Node.js 18+, MySQL 8.0.16+ y Git.
+**Requisitos:** Node.js 20+, MySQL Server 8.0.16+ y Git. MySQL Workbench es opcional, pero facilita ejecutar `init.sql`.
 
 **1. Clonar e instalar**
 
 ```bash
-git clone https://github.com/NicoleVelasquez129/Sistema-ventas.git
-cd Sistema-ventas/backend
-npm install
+git clone https://github.com/NicoleVelasquez129/Sistema-de-ventas-de-Skincare-Nube.git
+cd Sistema-de-ventas-de-Skincare-Nube/backend
+npm ci
 ```
+
+`npm ci` instala las dependencias declaradas en `package-lock.json`, incluidos `exceljs` (Excel) y `pdfkit` (PDF). No hace falta instalarlos por separado.
 
 **2. Crear la base de datos**
 
@@ -471,8 +473,29 @@ Sin `formato`, devuelven JSON (es lo que muestra la pantalla de Reportes). Con `
 
 ## 🧪 14. Pruebas
 
-- Prueba manual de cada endpoint con **Postman** y **Thunder Client**: casos correctos, datos inválidos, sin token, con token de otro rol y límites de intentos.
-- Todavía no hay pruebas automatizadas (`npm test` es un marcador).
+### Pruebas de API con Newman
+
+La colección automatizada está en `postman/nube_final.postman_collection.json`. Newman ejecuta las peticiones y comprueba los códigos y respuestas esperados.
+
+1. Instala Newman una vez (es una herramienta de pruebas, no una dependencia de la API):
+
+   ```bash
+   npm install --global newman
+   newman --version
+   ```
+
+2. Prepara una base de datos **de pruebas**, ejecuta `backend/database/init.sql`, crea las cuentas de administrador y vendedor y verifica que existan un producto activo con stock y una categoría.
+3. Inicia el backend con `npm start` desde `backend/` y ejecuta Newman desde la raíz del repositorio. Usa las credenciales creadas y los IDs válidos del producto y categoría:
+
+   ```bash
+   newman run postman/nube_final.postman_collection.json --env-var "baseUrl=http://localhost:3000" --env-var "adminCorreo=CORREO_ADMIN" --env-var "adminContrasena=CONTRASENA_ADMIN" --env-var "vendCorreo=CORREO_VENDEDOR" --env-var "vendContrasena=CONTRASENA_VENDEDOR" --env-var "productoId=1" --env-var "categoriaId=1"
+   ```
+
+   La colección tiene valores iniciales `productoId=1` y `categoriaId=1`; reemplázalos si en tu base tienen otros IDs. Las variables pasadas con `--env-var` solo aplican a esa ejecución: no guardes contraseñas en la colección ni las subas a Git.
+
+La colección ejecuta los grupos en orden: sesiones, validaciones, ventas de caja y web, productos/categorías, roles y seguridad. El último grupo limpia parte de los datos creados; usa una base desechable y deja que Newman termine para que esa limpieza se ejecute. No uses `--bail` ni ejecutes esta colección en producción. Newman devuelve un código distinto de cero si fallan peticiones o aserciones.
+
+`npm test` todavía no ejecuta pruebas unitarias: su script es solo un marcador. Newman cubre pruebas de integración HTTP; Postman también permite ejecutar la colección manualmente.
 
 ---
 
@@ -483,7 +506,7 @@ Sin `formato`, devuelven JSON (es lo que muestra la pantalla de Reportes). Con `
 | `Falta JWT_SECRET en el archivo .env` | No existe el `.env` o no tiene esa variable. | Crea `backend/.env` según la sección 6. |
 | `No se pudo conectar a la base de datos` | MySQL apagado o credenciales incorrectas. | Revisa `DB_*` en el `.env` y que MySQL esté activo. |
 | `Duplicate column name` al ejecutar el SQL | Se ejecutó un script antiguo sobre una base que ya tenía esas columnas. | Usa el `init.sql` actual solo en una base nueva. |
-| El frontend dice "Error de conexión" | El backend no está corriendo o `FRONTEND_URL` no coincide. | Inicia `node server.js` y revisa CORS. |
+| El frontend dice "Error de conexión" | El backend no está corriendo o `FRONTEND_URL` no coincide. | Inicia `npm start` desde `backend/` y revisa CORS. |
 | Las imágenes no se ven | La carpeta `uploads/` no está o la ruta cambió. | Reinicia el servidor y vuelve a subir la imagen. |
 | 429 Demasiados intentos | Se superó el límite de peticiones de autenticación. | Espera el tiempo indicado en el mensaje. |
 | No llegan correos | SMTP sin configurar. | Completa `SMTP_*` o lee el enlace en la consola. |
