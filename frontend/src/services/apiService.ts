@@ -1,7 +1,7 @@
 import type { Producto, Cliente, Categoria } from '../interfaces';
 import { cabecerasAuth } from './authService';
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 const API_ORIGIN = API_URL.replace(/\/api$/, '');
 
 // Datos que el administrador puede guardar de un producto
@@ -269,6 +269,7 @@ export const confirmarPagoAPI = async (idVenta: number, metodo: string) => {
 
 export interface VentaVendedorAPI {
   id_venta: number;
+  id_usuario?: number | null;
   fecha: string;
   createdAt?: string;
   total: number | string;
@@ -292,6 +293,7 @@ export const obtenerMisVentasAPI = async (): Promise<VentaVendedorAPI[]> => {
 export interface PedidoCliente {
   id_venta: number;
   fecha: string;
+  createdAt?: string;
   total: number | string;
   envio: number | string;
   estado: string;

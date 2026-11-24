@@ -190,14 +190,20 @@ async function cancelarVenta(idVenta, usuarioSesion) {
         }
 
         const esSuVenta = venta.id_vendedor === usuarioSesion.id_usuario;
-        if (!esSuVenta && usuarioSesion.rol !== 'administrador') {
-            const e = new Error('Solo puedes cancelar las ventas que registraste tú.');
+        const esSuPedido = venta.id_usuario === usuarioSesion.id_usuario;
+        if (!esSuVenta && !esSuPedido && usuarioSesion.rol !== 'administrador') {
+            const e = new Error('Solo puedes cancelar tus propias ventas o pedidos.');
             e.status = 403;
             throw e;
         }
 
         if (venta.estado === 'anulada') throw new Error('Esta venta ya fue cancelada.');
-        if (venta.estado_pedido !== 'pendiente') throw new Error('Solo se puede cancelar un pedido pendiente de pago.');
+        const esVentaCobradaPropia = usuarioSesion.rol === 'vendedor'
+            && esSuVenta
+            && venta.estado_pedido === 'pagado';
+        if (venta.estado_pedido !== 'pendiente' && !esVentaCobradaPropia) {
+            throw new Error('Solo puedes anular ventas pendientes o ventas cobradas propias que aún no se hayan enviado.');
+        }
         if (Date.now() - new Date(venta.createdAt).getTime() > VENTANA_CANCELACION_MS) {
             throw new Error('Pasaron más de 20 minutos: ya no se puede cancelar esta venta.');
         }

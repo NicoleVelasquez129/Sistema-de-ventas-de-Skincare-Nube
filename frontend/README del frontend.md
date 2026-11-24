@@ -115,14 +115,7 @@ La aplicación abre en `http://localhost:5173`.
 
 ## 🔧 5. Configuración
 
-**URL de la API.** Está escrita directamente en el código, en **dos archivos**:
-
-| Archivo | Constante |
-|---|---|
-| `src/services/authService.ts` | `API_URL = 'http://localhost:3000/api'` |
-| `src/services/apiService.ts` | `API_URL = 'http://localhost:3000/api'` |
-
-Para usar otro servidor, cambia el valor en **ambos** archivos. El backend debe tener `FRONTEND_URL` igual al origen del frontend, porque si no el navegador bloquea las peticiones por CORS.
+**URL de la API.** Se configura con `VITE_API_URL` en `frontend/.env` (copia `frontend/.env.example` y ajusta la URL). Por ejemplo: `VITE_API_URL=https://api.ejemplo.com/api`. Si no se define, se usa `http://localhost:3000/api`. El backend debe tener `FRONTEND_URL` igual al origen del frontend, porque si no el navegador bloquea las peticiones por CORS.
 
 **Colores de la marca** (`tailwind.config.js`):
 
@@ -250,7 +243,7 @@ Además, `urlImagen(ruta)` convierte las rutas `/uploads/...` del backend en URL
 
 | Síntoma | Causa probable | Solución |
 |---|---|---|
-| "Error de conexión con el servidor" | Backend apagado o `API_URL` incorrecta. | Inicia el backend y revisa `API_URL` en los dos servicios. |
+| "Error de conexión con el servidor" | Backend apagado o `VITE_API_URL` incorrecta. | Inicia el backend y revisa `VITE_API_URL` en `frontend/.env`. |
 | Error de CORS en la consola | `FRONTEND_URL` del backend distinto al origen del frontend. | Ajusta `FRONTEND_URL` en el `.env` del backend y reinícialo. |
 | Me devuelve a `/login` | Sesión vencida o rol sin permiso. | Inicia sesión de nuevo con el rol correcto. |
 | No cargan las imágenes | El backend no sirve `/uploads` o la ruta cambió. | Verifica que el backend esté activo y vuelve a subir la imagen. |
@@ -260,7 +253,6 @@ Además, `urlImagen(ruta)` convierte las rutas `/uploads/...` del backend en URL
 
 ## 🔭 13. Metas a futuro
 
-- Mover la URL de la API a una variable de entorno de Vite (`VITE_API_URL`).
 - Pantalla de **notificaciones** del pedido (depende del Paso 6 del backend).
 - Convertir la aplicación en **PWA** (instalable y con caché).
 - Pruebas automatizadas de componentes y de flujos.

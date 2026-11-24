@@ -151,7 +151,7 @@ Abre `backend/database/init.sql` en MySQL Workbench y ejecútalo **completo, una
 
 **3. Crear el archivo `.env`**
 
-Crea `backend/.env` con las variables de la sección 6.
+Copia `backend/.env.example` como `backend/.env` y completa allí los valores de configuración.
 
 **4. Crear los usuarios iniciales**
 
@@ -165,7 +165,7 @@ node scripts/crearVendedor.js   # correo, contraseña (mínimo 8, con letra y n�
 **5. Iniciar el servidor**
 
 ```bash
-node server.js
+npm start
 ```
 
 Salida esperada:
@@ -185,34 +185,31 @@ Si abres `http://localhost:3000/` ves un resumen JSON de la API.
 Archivo `backend/.env` (**nunca lo subas a Git**):
 
 ```env
-# Servidor
-PORT=3000
-FRONTEND_URL=http://localhost:5173
-
-# Base de datos
-DB_HOST=localhost
-DB_NAME=skinker_nube_db
-DB_USER=root
-DB_PASSWORD=tu_contraseña_de_mysql
-DB_DIALECT=mysql
-
-# Sesión (JWT)
-JWT_SECRET=una_clave_larga_y_aleatoria
-JWT_EXPIRES_IN=8h
-
-# Correo (opcional)
+PORT=
+FRONTEND_URL=
+DB_HOST=
+DB_PORT=
+DB_NAME=
+DB_USER=
+DB_PASSWORD=
+DB_DIALECT=
+JWT_SECRET=
+JWT_EXPIRES_IN=
 SMTP_HOST=
-SMTP_PORT=587
+SMTP_PORT=
 SMTP_USER=
 SMTP_PASS=
-MAIL_FROM="Skincare Nube" <correo@ejemplo.com>
+MAIL_FROM=
 ```
+
+Usa `backend/.env.example` como plantilla y copia sus nombres a `backend/.env`, completando los valores localmente.
 
 | Variable | Obligatoria | Descripción |
 |---|---|---|
 | `PORT` | No (3000) | Puerto de la API. |
 | `FRONTEND_URL` | No (`http://localhost:5173`) | Origen permitido por CORS y base del enlace de recuperación de contraseña. |
 | `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_DIALECT` | Sí | Conexión a MySQL (`DB_DIALECT=mysql`). |
+| `DB_PORT` | No (3306) | Puerto de MySQL. |
 | `JWT_SECRET` | **Sí** | Clave para firmar los tokens. Si falta, el servidor **no arranca**. |
 | `JWT_EXPIRES_IN` | No (`8h`) | Duración de la sesión. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | No | Servidor de correo. Si faltan, los correos **se muestran en la consola** (modo simulado). |
@@ -360,7 +357,7 @@ Base URL: `http://localhost:3000/api`
 | POST | `/ventas/vendedor` | Admin, vendedor | Registra una **venta de tienda** (`cliente` e `items`). |
 | GET | `/ventas/mias` | Admin, vendedor | Ventas registradas por el usuario. |
 | POST | `/ventas/:id/pagos` | Admin, vendedor | Confirma el pago (`metodo`: `efectivo`, `qr` o `transferencia`). |
-| PATCH | `/ventas/:id/cancelar` | Vendedor dueño de la venta o admin | Anula una venta **pendiente** dentro de 20 minutos y devuelve el stock. |
+| PATCH | `/ventas/:id/cancelar` | Dueño de la venta o pedido, o admin | Anula ventas pendientes y ventas cobradas propias del vendedor que aún no se enviaron, dentro de 20 minutos; devuelve el stock. El reembolso de pagos cobrados se gestiona manualmente y el pago queda como historial. |
 | GET | `/ventas/mis-pedidos` | Sesión iniciada | Pedidos del cliente. |
 | POST | `/ventas/:id/comprobante` | Cliente dueño | Sube el comprobante (campo `comprobante`, JPG/PNG/WEBP/PDF, máx. 5 MB). |
 | GET | `/ventas/en-linea` | Admin, vendedor | Pedidos en línea (el vendedor ve los pendientes y los que él confirmó). |
@@ -438,7 +435,8 @@ Sin `formato`, devuelven JSON (es lo que muestra la pantalla de Reportes). Con `
 - El estado solo avanza de `pagado` a `enviado`, y un vendedor solo envía los pedidos que confirmó él.
 
 **Cancelación**
-- Solo se anula una venta **pendiente** dentro de los **20 minutos** posteriores a crearla; se devuelve el stock.
+- Las ventas pendientes se pueden anular dentro de los **20 minutos** posteriores a crearlas; el stock se devuelve.
+- El vendedor dueño también puede anular una venta cobrada si aún no se envió y está dentro de esos 20 minutos. El pago permanece como historial y su reembolso debe gestionarse manualmente.
 
 **Categorías y vendedores**
 - No se elimina una categoría con productos.

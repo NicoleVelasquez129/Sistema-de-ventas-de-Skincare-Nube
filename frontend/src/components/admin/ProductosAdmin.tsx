@@ -20,6 +20,14 @@ interface ProductosAdminProps {
 const ETIQUETAS = ['Más vendido', 'Recomendado', 'Nuevo', 'Top UV'];
 const TIPOS_IMAGEN = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_IMAGEN_BYTES = 5 * 1024 * 1024;
+const validarStock = (valor: string, campo: string) => {
+  if (!valor.trim()) return `${campo} es obligatorio.`;
+  const numero = Number(valor);
+  if (!Number.isInteger(numero) || numero < 1 || numero > 200) {
+    return `${campo} debe ser un número entero entre 1 y 200.`;
+  }
+  return '';
+};
 
 const claseCampo =
   'w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30';
@@ -55,6 +63,8 @@ const FormularioProducto: React.FC<FormularioProps> = ({
   const [precio, setPrecio] = useState(producto ? String(producto.precio) : '');
   const [stock, setStock] = useState(producto ? String(producto.stock) : '');
   const [stockMinimo, setStockMinimo] = useState(producto?.stock_minimo !== undefined ? String(producto.stock_minimo) : '5');
+  const [stockTocado, setStockTocado] = useState(false);
+  const [stockMinimoTocado, setStockMinimoTocado] = useState(false);
   const [idCategoria, setIdCategoria] = useState(producto ? String(producto.id_categoria ?? '') : '');
   const [activo, setActivo] = useState(producto ? producto.activo !== false : true);
   const [imagenActual, setImagenActual] = useState(producto?.imagen ?? '');
@@ -74,6 +84,8 @@ const FormularioProducto: React.FC<FormularioProps> = ({
 
   const vistaPrevia = vistaArchivo || urlImagen(imagenActual);
   const etiquetasDisponibles = etiqueta && !ETIQUETAS.includes(etiqueta) ? [...ETIQUETAS, etiqueta] : ETIQUETAS;
+  const errorStock = stockTocado ? validarStock(stock, 'El stock') : '';
+  const errorStockMinimo = stockMinimoTocado ? validarStock(stockMinimo, 'El stock mínimo') : '';
 
   const elegirArchivo = (e: React.ChangeEvent<HTMLInputElement>) => {
     const elegido = e.target.files?.[0];
@@ -106,11 +118,13 @@ const FormularioProducto: React.FC<FormularioProps> = ({
     if (precio === '' || !Number.isFinite(precioNum) || precioNum <= 0 || precioNum > 5000) {
       return onMostrarMensaje('El precio debe ser mayor a 0 y no superar Bs 5.000.', true);
     }
-    if (stock === '' || !Number.isInteger(stockNum) || stockNum < 1 || stockNum > 200) {
-      return onMostrarMensaje('El stock debe ser un número entero entre 1 y 200.', true);
+    if (validarStock(stock, 'El stock')) {
+      setStockTocado(true);
+      return;
     }
-    if (stockMinimo === '' || !Number.isInteger(minimoNum) || minimoNum < 1 || minimoNum > 200) {
-      return onMostrarMensaje('El stock mínimo debe ser un número entero entre 1 y 200.', true);
+    if (validarStock(stockMinimo, 'El stock mínimo')) {
+      setStockMinimoTocado(true);
+      return;
     }
 
     setGuardando(true);
@@ -239,11 +253,51 @@ const FormularioProducto: React.FC<FormularioProps> = ({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="p-stock" className={claseEtiquetaCampo}>Stock *</label>
-                <input id="p-stock" type="number" min="1" max="200" step="1" inputMode="numeric" value={stock} onChange={e => setStock(e.target.value)} className={claseCampo} />
+                <input
+                  id="p-stock"
+                  type="number"
+                  min="1"
+                  max="200"
+                  step="1"
+                  inputMode="numeric"
+                  value={stock}
+                  aria-invalid={Boolean(errorStock)}
+                  aria-describedby={errorStock ? 'p-stock-error' : undefined}
+                  onInvalid={e => {
+                    e.preventDefault();
+                    setStockTocado(true);
+                  }}
+                  onChange={e => {
+                    setStock(e.target.value);
+                    setStockTocado(true);
+                  }}
+                  className={claseCampo}
+                />
+                {errorStock && <p id="p-stock-error" role="alert" className="mt-1 text-[11px] leading-snug text-rose-600">{errorStock}</p>}
               </div>
               <div>
                 <label htmlFor="p-minimo" className={claseEtiquetaCampo}>Stock mín.</label>
-                <input id="p-minimo" type="number" min="1" max="200" step="1" inputMode="numeric" value={stockMinimo} onChange={e => setStockMinimo(e.target.value)} className={claseCampo} />
+                <input
+                  id="p-minimo"
+                  type="number"
+                  min="1"
+                  max="200"
+                  step="1"
+                  inputMode="numeric"
+                  value={stockMinimo}
+                  aria-invalid={Boolean(errorStockMinimo)}
+                  aria-describedby={errorStockMinimo ? 'p-minimo-error' : undefined}
+                  onInvalid={e => {
+                    e.preventDefault();
+                    setStockMinimoTocado(true);
+                  }}
+                  onChange={e => {
+                    setStockMinimo(e.target.value);
+                    setStockMinimoTocado(true);
+                  }}
+                  className={claseCampo}
+                />
+                {errorStockMinimo && <p id="p-minimo-error" role="alert" className="mt-1 text-[11px] leading-snug text-rose-600">{errorStockMinimo}</p>}
               </div>
             </div>
 

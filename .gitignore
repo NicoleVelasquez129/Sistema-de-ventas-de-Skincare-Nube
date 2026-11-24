@@ -4,4 +4,3 @@ backend/node_modules/
 backend/.env
 .git
 npm-debug.log
-.env.example

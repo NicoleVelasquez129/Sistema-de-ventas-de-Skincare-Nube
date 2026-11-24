@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { guardarFacturaPDF, obtenerMisPedidosAPI, subirComprobanteAPI, urlImagen } from '../services/apiService';
+import { cancelarVentaAPI, guardarFacturaPDF, obtenerMisPedidosAPI, subirComprobanteAPI, urlImagen } from '../services/apiService';
 import type { PedidoCliente } from '../services/apiService';
 import { QrPagoFalso } from '../components/QrPagoFalso';
+import { CuentaAtrasCancelar } from '../components/CuentaAtrasCancelar';
+import { ConfirmacionDialog } from '../components/ConfirmacionDialog';
 
 const dinero = (valor: number | string) => `$${Number(valor).toFixed(2)}`;
 
@@ -24,6 +26,8 @@ export const MisPedidos: React.FC = () => {
   const [archivos, setArchivos] = useState<Record<number, File | null>>({});
   const [enviando, setEnviando] = useState<number | null>(null);
   const [descargando, setDescargando] = useState<number | null>(null);
+  const [cancelando, setCancelando] = useState<number | null>(null);
+  const [pedidoACancelar, setPedidoACancelar] = useState<number | null>(null);
 
   const cargar = useCallback(async () => {
     try {
@@ -39,6 +43,24 @@ export const MisPedidos: React.FC = () => {
   useEffect(() => {
     cargar();
   }, [cargar]);
+
+  const solicitarCancelacion = (idVenta: number) => setPedidoACancelar(idVenta);
+
+  const confirmarCancelacion = async () => {
+    if (pedidoACancelar === null) return;
+    const idVenta = pedidoACancelar;
+    setPedidoACancelar(null);
+    setCancelando(idVenta);
+    setError('');
+    try {
+      await cancelarVentaAPI(idVenta);
+      await cargar();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo cancelar el pedido.');
+    } finally {
+      setCancelando(null);
+    }
+  };
 
   const enviar = async (idVenta: number) => {
     const archivo = archivos[idVenta];
@@ -158,12 +180,27 @@ export const MisPedidos: React.FC = () => {
                   >
                     {enviando === pedido.id_venta ? 'Enviando…' : pedido.comprobante_pago ? 'Enviar otro comprobante' : 'Enviar comprobante'}
                   </button>
+                  <CuentaAtrasCancelar
+                    creadaEn={pedido.createdAt || pedido.fecha}
+                    texto="Cancelar pedido"
+                    cancelando={cancelando === pedido.id_venta}
+                    onCancelar={() => solicitarCancelacion(pedido.id_venta)}
+                  />
                 </div>
               )}
             </article>
           );
         })}
       </div>
+      {pedidoACancelar !== null && (
+        <ConfirmacionDialog
+          titulo={`¿Cancelar el pedido #${pedidoACancelar}?`}
+          mensaje="Se anulará el pedido y los productos volverán al inventario."
+          textoConfirmar="Sí, cancelar pedido"
+          onConfirmar={confirmarCancelacion}
+          onCancelar={() => setPedidoACancelar(null)}
+        />
+      )}
     </section>
   );
 };

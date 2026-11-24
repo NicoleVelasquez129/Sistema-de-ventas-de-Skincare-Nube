@@ -11,6 +11,8 @@ import {
 } from '../services/apiService';
 import type { VentaVendedorAPI } from '../services/apiService';
 import { carnetValido, celularValido, filtroCarnet, nombreValido, soloDigitos, soloLetras } from '../utils/validaciones';
+import { CuentaAtrasCancelar } from '../components/CuentaAtrasCancelar';
+import { ConfirmacionDialog } from '../components/ConfirmacionDialog';
 
 interface LineaVenta {
   producto: Producto;
@@ -70,6 +72,11 @@ export const Vender: React.FC = () => {
   const [metodoPorVenta, setMetodoPorVenta] = useState<Record<number, string>>({});
   const [confirmando, setConfirmando] = useState<number | null>(null);
   const [cancelando, setCancelando] = useState<number | null>(null);
+  const [ventaAAnular, setVentaAAnular] = useState<number | null>(null);
+  const [fechaDesde, setFechaDesde] = useState('');
+  const [fechaHasta, setFechaHasta] = useState('');
+  const [filtroEstadoPedido, setFiltroEstadoPedido] = useState('todos');
+  const [filtroTipoPedido, setFiltroTipoPedido] = useState('todos');
 
   const [descargando, setDescargando] = useState<number | null>(null);
 
@@ -98,6 +105,29 @@ export const Vender: React.FC = () => {
     const texto = busqueda.trim().toLowerCase();
     return productos.filter(p => !texto || p.nombre.toLowerCase().includes(texto));
   }, [productos, busqueda]);
+
+  const ventasFiltradas = useMemo(() => {
+    const inicio = fechaDesde ? new Date(`${fechaDesde}T00:00:00`).getTime() : null;
+    const fin = fechaHasta ? new Date(`${fechaHasta}T23:59:59.999`).getTime() : null;
+
+    return misVentas.filter(venta => {
+      const fecha = new Date(venta.fecha).getTime();
+      if (inicio !== null && fecha < inicio) return false;
+      if (fin !== null && fecha > fin) return false;
+
+      const coincideEstado =
+        filtroEstadoPedido === 'todos' ||
+        (filtroEstadoPedido === 'anulada'
+          ? venta.estado === 'anulada'
+          : venta.estado !== 'anulada' && venta.estado_pedido === filtroEstadoPedido);
+      const esPedidoEnLinea = venta.id_usuario != null;
+      const coincideTipo =
+        filtroTipoPedido === 'todos' ||
+        (filtroTipoPedido === 'en-linea' ? esPedidoEnLinea : !esPedidoEnLinea);
+
+      return coincideEstado && coincideTipo;
+    });
+  }, [misVentas, fechaDesde, fechaHasta, filtroEstadoPedido, filtroTipoPedido]);
 
   // --- Cliente ---
   const cambiarCarnet = (valor: string) => {
@@ -248,14 +278,19 @@ export const Vender: React.FC = () => {
     }
   };
 
-  const cancelar = async (idVenta: number) => {
-    if (!window.confirm(`¿Cancelar la venta #${idVenta} y devolver sus productos al stock?`)) return;
+  const solicitarAnulacion = (idVenta: number) => setVentaAAnular(idVenta);
+
+  const confirmarAnulacion = async () => {
+    if (ventaAAnular === null) return;
+    const idVenta = ventaAAnular;
+    setVentaAAnular(null);
     setCancelando(idVenta);
     setError('');
     setExito('');
     try {
       await cancelarVentaAPI(idVenta);
-      setExito(`Venta #${idVenta} cancelada y stock devuelto.`);
+      setVentaAAnular(null);
+      setExito(`Venta #${idVenta} anulada y stock devuelto.`);
       await Promise.all([cargarProductos(), cargarMisVentas()]);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo cancelar la venta.');
@@ -285,6 +320,7 @@ export const Vender: React.FC = () => {
     );
     return { cantidad: validas.length, vendido, cobrado, porCobrar: vendido - cobrado };
   }, [misVentas]);
+  const ventaSeleccionadaParaAnular = misVentas.find(v => v.id_venta === ventaAAnular);
 
   return (
     <div className="fade-in mx-auto max-w-6xl px-4 py-8 sm:px-8">
@@ -462,6 +498,73 @@ export const Vender: React.FC = () => {
           ))}
         </div>
 
+        <div className="mb-4 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <label className="grid gap-1 text-xs font-semibold text-stone-600">
+              Desde
+              <input
+                type="date"
+                value={fechaDesde}
+                max={fechaHasta || undefined}
+                onChange={e => setFechaDesde(e.target.value)}
+                className={claseControl}
+              />
+            </label>
+            <label className="grid gap-1 text-xs font-semibold text-stone-600">
+              Hasta
+              <input
+                type="date"
+                value={fechaHasta}
+                min={fechaDesde || undefined}
+                onChange={e => setFechaHasta(e.target.value)}
+                className={claseControl}
+              />
+            </label>
+            <label className="grid gap-1 text-xs font-semibold text-stone-600">
+              Estado del pedido
+              <select
+                value={filtroEstadoPedido}
+                onChange={e => setFiltroEstadoPedido(e.target.value)}
+                className={claseControl}
+              >
+                <option value="todos">Todos los estados</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="pagado">Pagado</option>
+                <option value="enviado">Enviado</option>
+                <option value="entregado">Entregado</option>
+                <option value="anulada">Anulado</option>
+              </select>
+            </label>
+            <label className="grid gap-1 text-xs font-semibold text-stone-600">
+              Tipo de pedido
+              <select
+                value={filtroTipoPedido}
+                onChange={e => setFiltroTipoPedido(e.target.value)}
+                className={claseControl}
+              >
+                <option value="todos">Todos los tipos</option>
+                <option value="tienda">Venta de tienda</option>
+                <option value="en-linea">Pedido en línea</option>
+              </select>
+            </label>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-stone-600">Mostrando {ventasFiltradas.length} de {misVentas.length} ventas</p>
+            <button
+              type="button"
+              onClick={() => {
+                setFechaDesde('');
+                setFechaHasta('');
+                setFiltroEstadoPedido('todos');
+                setFiltroTipoPedido('todos');
+              }}
+              className="rounded-lg px-3 py-2 text-sm font-semibold text-nube-oscuro transition hover:bg-primary/10"
+            >
+              Limpiar filtros
+            </button>
+          </div>
+        </div>
+
         <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white">
           <table className="w-full text-left text-sm">
             <thead className="bg-stone-50 text-xs uppercase text-stone-600">
@@ -471,20 +574,19 @@ export const Vender: React.FC = () => {
                 <th className="px-4 py-3">Cliente</th>
                 <th className="px-4 py-3">Total</th>
                 <th className="px-4 py-3">Pedido</th>
+                <th className="px-4 py-3">Tipo</th>
                 <th className="px-4 py-3">Pago</th>
                 <th className="px-4 py-3">Acciones</th>
                 <th className="px-4 py-3">Ticket</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
-              {misVentas.map(v => {
+              {ventasFiltradas.map(v => {
                 const pago = v.pagos && v.pagos[0];
                 const puedeCobrar = v.estado === 'registrada' && v.estado_pedido === 'pendiente';
-                const fechaCreacion = Date.parse(v.createdAt || v.fecha);
                 const puedeCancelar =
                   v.estado === 'registrada' &&
-                  v.estado_pedido === 'pendiente' &&
-                  Date.now() - fechaCreacion <= 20 * 60 * 1000;
+                  (v.estado_pedido === 'pendiente' || v.estado_pedido === 'pagado');
                 return (
                   <tr key={v.id_venta}>
                     <td className="px-4 py-3 font-medium">{v.id_venta}</td>
@@ -496,6 +598,7 @@ export const Vender: React.FC = () => {
                         {v.estado === 'anulada' ? 'anulada' : v.estado_pedido}
                       </span>
                     </td>
+                    <td className="px-4 py-3">{v.id_usuario != null ? 'Pedido en línea' : 'Venta de tienda'}</td>
                     <td className="px-4 py-3">
                       {pago ? (
                         <span className="text-stone-700">{pago.metodo} · {moneda.format(Number(pago.monto))}</span>
@@ -517,14 +620,12 @@ export const Vender: React.FC = () => {
                     </td>
                     <td className="px-4 py-3">
                       {puedeCancelar ? (
-                        <button
-                          type="button"
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-rose-700 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-rose-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
-                          onClick={() => cancelar(v.id_venta)}
-                          disabled={cancelando === v.id_venta}
-                        >
-                          {cancelando === v.id_venta ? 'Cancelando…' : 'Cancelar pedido'}
-                        </button>
+                        <CuentaAtrasCancelar
+                          creadaEn={v.createdAt || v.fecha}
+                          texto="Anular venta"
+                          cancelando={cancelando === v.id_venta}
+                          onCancelar={() => solicitarAnulacion(v.id_venta)}
+                        />
                       ) : '—'}
                     </td>
                     <td className="px-4 py-3">
@@ -542,13 +643,27 @@ export const Vender: React.FC = () => {
                   </tr>
                 );
               })}
-              {misVentas.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-6 text-center text-stone-600">Todavía no registraste ventas.</td></tr>
+              {ventasFiltradas.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="px-4 py-6 text-center text-stone-600">
+                    {misVentas.length === 0 ? 'Todavía no registraste ventas.' : 'No hay ventas que coincidan con los filtros.'}
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
         </div>
       </section>
+      {ventaAAnular !== null && (
+        <ConfirmacionDialog
+          titulo={`¿Anular la venta #${ventaAAnular}?`}
+          mensaje="Los productos de esta venta se devolverán al inventario."
+          aviso={ventaSeleccionadaParaAnular?.estado_pedido === 'pagado' ? 'El pago quedará en el historial; recuerda gestionar manualmente el reembolso.' : undefined}
+          textoConfirmar="Sí, anular venta"
+          onConfirmar={confirmarAnulacion}
+          onCancelar={() => setVentaAAnular(null)}
+        />
+      )}
     </div>
   );
 };
