@@ -8,14 +8,15 @@ interface CampoContrasenaProps {
   onCambio: (valor: string) => void;
   autoComplete: string;
   ayuda?: string;
+  error?: string;
 }
 
-export const CampoContrasena: React.FC<CampoContrasenaProps> = ({ id, etiqueta, valor, onCambio, autoComplete, ayuda }) => {
+export const CampoContrasena: React.FC<CampoContrasenaProps> = ({ id, etiqueta, valor, onCambio, autoComplete, ayuda, error }) => {
   const [visible, setVisible] = useState(false);
 
   return (
     <div>
-      <label htmlFor={id} className="mb-1 block text-xs font-semibold uppercase tracking-wide text-stone-500">
+      <label htmlFor={id} className="mb-1 block text-xs font-semibold uppercase tracking-wide text-stone-600">
         {etiqueta}
       </label>
       <div className="relative">
@@ -31,7 +32,7 @@ export const CampoContrasena: React.FC<CampoContrasenaProps> = ({ id, etiqueta, 
           type="button"
           onClick={() => setVisible(v => !v)}
           aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-          className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-stone-400 hover:text-stone-700"
+          className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-stone-600 hover:text-stone-700"
         >
           {visible ? (
             <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
@@ -45,7 +46,14 @@ export const CampoContrasena: React.FC<CampoContrasenaProps> = ({ id, etiqueta, 
           )}
         </button>
       </div>
-      {ayuda && <p className="mt-1 text-xs text-stone-400">{ayuda}</p>}
+      {(ayuda || error) && (
+        <p
+          role={error ? 'alert' : undefined}
+          className={`mt-1 text-xs ${error ? 'text-rose-600' : 'text-stone-600'}`}
+        >
+          {error || ayuda}
+        </p>
+      )}
     </div>
   );
 };

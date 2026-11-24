@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const { Op } = require("sequelize");
 const { Usuario, Venta } = require("../models");
 const { obtenerVentasDeVendedor } = require("./saleService");
+const { nombreValido } = require("../utils/validaciones");
 
 const REGEX_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -56,8 +57,8 @@ const obtenerVendedoresService = async () => {
 
 const crearVendedorService = async (datos) => {
     const { nombre, correo, contrasena } = datos || {};
-    if (typeof nombre !== "string" || !nombre.trim() || nombre.trim().length > 150) {
-        throw errorHttp(400, "El nombre es obligatorio (máximo 150 caracteres).");
+    if (!nombreValido(nombre)) {
+        throw errorHttp(400, "El nombre debe tener solo letras y espacios (entre 2 y 150 caracteres).");
     }
     const correoNormalizado = typeof correo === "string" ? correo.trim().toLowerCase() : "";
     if (!REGEX_CORREO.test(correoNormalizado) || correoNormalizado.length > 150) {

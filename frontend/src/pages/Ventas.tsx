@@ -131,6 +131,9 @@ export const Ventas: React.FC = () => {
   }, [ventasFiltradas, categoriaId]);
 
   const ingresos = ventasFiltradas.reduce((suma, venta) => suma + ingresosDeVenta(venta, categoriaId), 0);
+  const ganancia = ventasFiltradas.reduce((suma, venta) =>
+  suma + detallesDeVenta(venta, categoriaId).reduce((s, d) =>
+    s + (Number(d.precio_unitario) - Number(d.costo_unitario ?? 0)) * Number(d.cantidad), 0), 0);
   const unidades = ventasFiltradas.reduce((suma, venta) =>
     suma + detallesDeVenta(venta, categoriaId).reduce((subtotal, detalle) => subtotal + Number(detalle.cantidad), 0), 0);
   const ticketPromedio = ventasFiltradas.length ? ingresos / ventasFiltradas.length : 0;
@@ -191,6 +194,7 @@ export const Ventas: React.FC = () => {
   const maximoGrafica = Math.max(...puntosGrafico.map(punto => punto.ingresos), 1);
   const tarjetas = [
     { etiqueta: 'Ingresos', valor: moneda.format(ingresos), detalle: categoriaId === 'todas' ? 'Incluye el total registrado' : 'Ventas de la categoría seleccionada', color: 'text-emerald-700' },
+    { etiqueta: 'Ganancia', valor: moneda.format(ganancia), detalle: 'Precio menos costo, sin envío', color: 'text-violet-700' },
     { etiqueta: 'Ventas', valor: String(ventasFiltradas.length), detalle: 'Transacciones con pago confirmado', color: 'text-sky-700' },
     { etiqueta: 'Unidades vendidas', valor: String(unidades), detalle: 'Unidades dentro del período', color: 'text-amber-700' },
     { etiqueta: 'Ticket promedio', valor: moneda.format(ticketPromedio), detalle: 'Ingresos divididos entre ventas', color: 'text-rose-700' },
@@ -200,9 +204,9 @@ export const Ventas: React.FC = () => {
     <section className="fade-in mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
       <header className="flex flex-col gap-4 border-b border-stone-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primaryFocus">Análisis comercial</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-nube-oscuro">Análisis comercial</p>
           <h1 className="mt-1 font-serif text-3xl font-bold text-stone-900">Panel de ventas</h1>
-          <p className="mt-1 text-sm text-stone-500">Rendimiento, productos destacados y oportunidades de catálogo.</p>
+          <p className="mt-1 text-sm text-stone-600">Rendimiento, productos destacados y oportunidades de catálogo.</p>
         </div>
         <button type="button" onClick={actualizarDatos} disabled={cargando} className="rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-60">
           {cargando ? 'Actualizando…' : 'Actualizar datos'}
@@ -252,12 +256,12 @@ export const Ventas: React.FC = () => {
         </label>
       </section>
 
-      <section aria-label="Indicadores de ventas" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section aria-label="Indicadores de ventas" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {tarjetas.map(tarjeta => (
           <article key={tarjeta.etiqueta} className="rounded-xl border border-stone-200 bg-white p-5">
-            <p className="text-sm font-medium text-stone-500">{tarjeta.etiqueta}</p>
+            <p className="text-sm font-medium text-stone-600">{tarjeta.etiqueta}</p>
             <p className={`mt-3 font-serif text-2xl font-bold ${tarjeta.color}`}>{tarjeta.valor}</p>
-            <p className="mt-2 text-xs text-stone-400">{tarjeta.detalle}</p>
+            <p className="mt-2 text-xs text-stone-600">{tarjeta.detalle}</p>
           </article>
         ))}
       </section>
@@ -266,22 +270,22 @@ export const Ventas: React.FC = () => {
         <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="font-serif text-lg font-bold text-stone-900">Ingresos por {agrupacion === 'dia' ? 'día' : 'mes'}</h2>
-            <p className="text-sm text-stone-500">{puntosGrafico.length} períodos · {moneda.format(ingresos)} en total</p>
+            <p className="text-sm text-stone-600">{puntosGrafico.length} períodos · {moneda.format(ingresos)} en total</p>
           </div>
           <span className="rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800">{agrupacion === 'dia' ? 'Vista diaria' : 'Vista mensual'}</span>
         </div>
         {cargando ? (
-          <div className="flex h-56 items-center justify-center text-sm text-stone-400">Cargando ventas…</div>
+          <div className="flex h-56 items-center justify-center text-sm text-stone-600">Cargando ventas…</div>
         ) : puntosGrafico.length === 0 ? (
-          <div className="flex h-56 items-center justify-center text-sm text-stone-400">El rango seleccionado no es válido.</div>
+          <div className="flex h-56 items-center justify-center text-sm text-stone-600">El rango seleccionado no es válido.</div>
         ) : (
           <div className="overflow-x-auto">
             <div className="flex h-56 min-w-full items-end gap-2 border-b border-stone-200 pb-2" style={{ minWidth: `${Math.max(puntosGrafico.length * 42, 100)}px` }}>
               {puntosGrafico.map(punto => (
                 <div key={punto.clave} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2" title={`${punto.etiqueta}: ${moneda.format(punto.ingresos)}`}>
-                  <span className="max-w-full truncate text-[10px] text-stone-500">{punto.ingresos > 0 ? moneda.format(punto.ingresos) : ''}</span>
+                  <span className="max-w-full truncate text-[10px] text-stone-600">{punto.ingresos > 0 ? moneda.format(punto.ingresos) : ''}</span>
                   <div className={`w-full max-w-10 rounded-t-md ${punto.ingresos > 0 ? 'bg-primary' : 'bg-stone-100'}`} style={{ height: `${punto.ingresos > 0 ? Math.max((punto.ingresos / maximoGrafica) * 100, 4) : 2}%` }} />
-                  <span className="h-4 text-[10px] capitalize text-stone-500">{punto.etiqueta}</span>
+                  <span className="h-4 text-[10px] capitalize text-stone-600">{punto.etiqueta}</span>
                 </div>
               ))}
             </div>
@@ -294,7 +298,7 @@ export const Ventas: React.FC = () => {
           <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="font-serif text-lg font-bold text-stone-900">Más vendidos</h2>
-              <p className="text-sm text-stone-500">Productos con ventas en el período.</p>
+              <p className="text-sm text-stone-600">Productos con ventas en el período.</p>
             </div>
             <div className="inline-flex rounded-lg border border-stone-200 p-1" aria-label="Ordenar ranking">
               <button type="button" onClick={() => setOrdenRanking('unidades')} aria-pressed={ordenRanking === 'unidades'} className={`rounded-md px-3 py-1.5 text-xs font-semibold ${ordenRanking === 'unidades' ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-100'}`}>Unidades</button>
@@ -302,14 +306,14 @@ export const Ventas: React.FC = () => {
             </div>
           </header>
           {ranking.length === 0 ? (
-            <p className="py-8 text-center text-sm text-stone-400">No hay ventas en este período.</p>
+            <p className="py-8 text-center text-sm text-stone-600">No hay ventas en este período.</p>
           ) : (
             <ol className="divide-y divide-stone-100">
               {ranking.map((item, indice) => (
                 <li key={item.producto.id_producto} className="flex items-center gap-3 py-3">
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-stone-100 text-xs font-bold text-stone-600">{indice + 1}</span>
                   <span className="min-w-0 flex-1 truncate text-sm font-semibold text-stone-800">{item.producto.nombre}</span>
-                  <span className="text-right text-xs text-stone-500">{item.unidades} ud.<br /><b className="text-stone-800">{moneda.format(item.ingresos)}</b></span>
+                  <span className="text-right text-xs text-stone-600">{item.unidades} ud.<br /><b className="text-stone-800">{moneda.format(item.ingresos)}</b></span>
                 </li>
               ))}
             </ol>
@@ -319,10 +323,10 @@ export const Ventas: React.FC = () => {
         <article className="rounded-xl border border-stone-200 bg-white p-5">
           <header className="mb-4">
             <h2 className="font-serif text-lg font-bold text-stone-900">Productos con poca o ninguna venta</h2>
-            <p className="text-sm text-stone-500">Catálogo activo con dos unidades vendidas o menos.</p>
+            <p className="text-sm text-stone-600">Catálogo activo con dos unidades vendidas o menos.</p>
           </header>
           {productosSinVentas.length === 0 ? (
-            <p className="py-8 text-center text-sm text-stone-400">Todos los productos activos superan ese umbral.</p>
+            <p className="py-8 text-center text-sm text-stone-600">Todos los productos activos superan ese umbral.</p>
           ) : (
             <ul className="divide-y divide-stone-100">
               {productosSinVentas.map(({ producto, venta }) => (

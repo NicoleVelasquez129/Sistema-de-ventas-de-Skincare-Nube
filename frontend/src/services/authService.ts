@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 const CLAVE_TOKEN = 'skinker_token';
 const CLAVE_USUARIO = 'skinker_usuario';
 

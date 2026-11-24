@@ -1,13 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Producto } from '../interfaces';
 import {
+  cancelarVentaAPI,
   buscarClientePorCarnetAPI,
   confirmarPagoAPI,
+  guardarFacturaPDF,
   obtenerMisVentasAPI,
   obtenerProductosAPI,
   registrarVentaVendedorAPI,
 } from '../services/apiService';
 import type { VentaVendedorAPI } from '../services/apiService';
+import { carnetValido, celularValido, filtroCarnet, nombreValido, soloDigitos, soloLetras } from '../utils/validaciones';
+import { CuentaAtrasCancelar } from '../components/CuentaAtrasCancelar';
+import { ConfirmacionDialog } from '../components/ConfirmacionDialog';
 
 interface LineaVenta {
   producto: Producto;
@@ -33,6 +38,9 @@ const claseControl =
 const claseBoton =
   'rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primaryFocus disabled:cursor-not-allowed disabled:opacity-50';
 const claseTarjeta = 'rounded-2xl border border-stone-200 bg-white p-5 shadow-sm';
+const REGEX_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ErrorCampo: React.FC<{ texto?: string }> = ({ texto }) =>
+  texto ? <p role="alert" className="mt-1 text-xs text-rose-600">{texto}</p> : null;
 
 export const Vender: React.FC = () => {
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -56,12 +64,21 @@ export const Vender: React.FC = () => {
 
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState('');
+  const [errores, setErrores] = useState<Record<string, string>>({});
   const [exito, setExito] = useState('');
 
   // Mis ventas
   const [misVentas, setMisVentas] = useState<VentaVendedorAPI[]>([]);
   const [metodoPorVenta, setMetodoPorVenta] = useState<Record<number, string>>({});
   const [confirmando, setConfirmando] = useState<number | null>(null);
+  const [cancelando, setCancelando] = useState<number | null>(null);
+  const [ventaAAnular, setVentaAAnular] = useState<number | null>(null);
+  const [fechaDesde, setFechaDesde] = useState('');
+  const [fechaHasta, setFechaHasta] = useState('');
+  const [filtroEstadoPedido, setFiltroEstadoPedido] = useState('todos');
+  const [filtroTipoPedido, setFiltroTipoPedido] = useState('todos');
+
+  const [descargando, setDescargando] = useState<number | null>(null);
 
   const cargarProductos = useCallback(async () => {
     try {
@@ -89,28 +106,58 @@ export const Vender: React.FC = () => {
     return productos.filter(p => !texto || p.nombre.toLowerCase().includes(texto));
   }, [productos, busqueda]);
 
+  const ventasFiltradas = useMemo(() => {
+    const inicio = fechaDesde ? new Date(`${fechaDesde}T00:00:00`).getTime() : null;
+    const fin = fechaHasta ? new Date(`${fechaHasta}T23:59:59.999`).getTime() : null;
+
+    return misVentas.filter(venta => {
+      const fecha = new Date(venta.fecha).getTime();
+      if (inicio !== null && fecha < inicio) return false;
+      if (fin !== null && fecha > fin) return false;
+
+      const coincideEstado =
+        filtroEstadoPedido === 'todos' ||
+        (filtroEstadoPedido === 'anulada'
+          ? venta.estado === 'anulada'
+          : venta.estado !== 'anulada' && venta.estado_pedido === filtroEstadoPedido);
+      const esPedidoEnLinea = venta.id_usuario != null;
+      const coincideTipo =
+        filtroTipoPedido === 'todos' ||
+        (filtroTipoPedido === 'en-linea' ? esPedidoEnLinea : !esPedidoEnLinea);
+
+      return coincideEstado && coincideTipo;
+    });
+  }, [misVentas, fechaDesde, fechaHasta, filtroEstadoPedido, filtroTipoPedido]);
+
   // --- Cliente ---
   const cambiarCarnet = (valor: string) => {
     setCarnet(valor);
     setClienteEncontrado(false);
     setDatosConfirmados(false);
     setMensajeCarnet('');
+    setErrores({});
   };
 
   const editarDato = (setter: (valor: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setter(e.target.value);
+    setErrores({});
     setDatosConfirmados(false); // si el vendedor corrige algo, debe volver a confirmar
   };
 
   const buscarCarnet = async () => {
     if (!carnet.trim()) return;
+    if (!carnetValido(carnet)) {
+      setClienteEncontrado(false);
+      setMensajeCarnet('El carnet solo puede tener letras, números y un guion (5 a 20 caracteres).');
+      return;
+    }
     setBuscandoCarnet(true);
     setError('');
     try {
       const cliente = await buscarClientePorCarnetAPI(carnet);
       if (cliente) {
         setNombre(cliente.nombre || '');
-        setTelefono(cliente.telefono || '');
+        setTelefono((cliente.telefono || '').replace(/\D/g, '').slice(-8));
         setCorreo(cliente.correo || '');
         setDireccion(cliente.direccion || '');
         setClienteEncontrado(true);
@@ -164,6 +211,7 @@ export const Vender: React.FC = () => {
     setClienteEncontrado(false);
     setDatosConfirmados(false);
     setMensajeCarnet('');
+    setErrores({});
   };
 
   // --- Registrar venta (y cobrarla si se marcó) ---
@@ -172,11 +220,15 @@ export const Vender: React.FC = () => {
     setError('');
     setExito('');
 
-    if (lineas.length === 0) return setError('Agrega al menos un producto.');
-    if (!nombre.trim()) return setError('El nombre del cliente es obligatorio.');
-    if (clienteEncontrado && !datosConfirmados) {
-      return setError('Confirma que los datos del cliente son correctos.');
-    }
+    const nuevos: Record<string, string> = {};
+    if (lineas.length === 0) nuevos.productos = 'Agrega al menos un producto.';
+    if (carnet.trim() && !carnetValido(carnet.trim())) nuevos.carnet = 'El carnet solo puede tener letras, números y un guion (5 a 20 caracteres).';
+    if (!nombreValido(nombre)) nuevos.nombre = 'Escribe el nombre del cliente usando solo letras.';
+    if (telefono.trim() && !celularValido(telefono)) nuevos.telefono = 'El teléfono debe tener 8 números.';
+    if (correo.trim() && !REGEX_CORREO.test(correo.trim())) nuevos.correo = 'Ingresa un correo válido.';
+    if (clienteEncontrado && !datosConfirmados) nuevos.confirmacion = 'Confirma que los datos del cliente son correctos.';
+    setErrores(nuevos);
+    if (Object.keys(nuevos).length) return;
 
     setEnviando(true);
     try {
@@ -226,6 +278,39 @@ export const Vender: React.FC = () => {
     }
   };
 
+  const solicitarAnulacion = (idVenta: number) => setVentaAAnular(idVenta);
+
+  const confirmarAnulacion = async () => {
+    if (ventaAAnular === null) return;
+    const idVenta = ventaAAnular;
+    setVentaAAnular(null);
+    setCancelando(idVenta);
+    setError('');
+    setExito('');
+    try {
+      await cancelarVentaAPI(idVenta);
+      setVentaAAnular(null);
+      setExito(`Venta #${idVenta} anulada y stock devuelto.`);
+      await Promise.all([cargarProductos(), cargarMisVentas()]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo cancelar la venta.');
+    } finally {
+      setCancelando(null);
+    }
+  };
+
+  const descargarTicket = async (idVenta: number) => {
+    setDescargando(idVenta);
+    setError('');
+    try {
+      await guardarFacturaPDF(idVenta);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo descargar el ticket.');
+    } finally {
+      setDescargando(null);
+    }
+  };
+
   const resumen = useMemo(() => {
     const validas = misVentas.filter(v => v.estado !== 'anulada');
     const vendido = validas.reduce((suma, v) => suma + Number(v.total), 0);
@@ -235,11 +320,12 @@ export const Vender: React.FC = () => {
     );
     return { cantidad: validas.length, vendido, cobrado, porCobrar: vendido - cobrado };
   }, [misVentas]);
+  const ventaSeleccionadaParaAnular = misVentas.find(v => v.id_venta === ventaAAnular);
 
   return (
     <div className="fade-in mx-auto max-w-6xl px-4 py-8 sm:px-8">
       <h2 className="font-serif text-3xl font-bold text-stone-900">Registrar venta</h2>
-      <p className="mb-6 text-sm text-stone-500">
+      <p className="mb-6 text-sm text-stone-600">
         Registra la venta de tienda, confirma el cobro y revisa lo que vendiste.
       </p>
 
@@ -254,7 +340,7 @@ export const Vender: React.FC = () => {
         </div>
       )}
 
-      <form onSubmit={registrarVenta} className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+      <form onSubmit={registrarVenta} noValidate autoComplete="off" className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <div className="space-y-6">
           {/* CLIENTE */}
           <section className={claseTarjeta}>
@@ -265,9 +351,11 @@ export const Vender: React.FC = () => {
             <div className="flex gap-2">
               <input
                 id="carnet"
+                autoComplete="off"
+                maxLength={20}
                 className={claseControl}
                 value={carnet}
-                onChange={e => cambiarCarnet(e.target.value)}
+                onChange={e => cambiarCarnet(filtroCarnet(e.target.value))}
                 onKeyDown={e => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
@@ -280,26 +368,30 @@ export const Vender: React.FC = () => {
                 {buscandoCarnet ? 'Buscando…' : 'Buscar'}
               </button>
             </div>
+            <ErrorCampo texto={errores.carnet} />
             {mensajeCarnet && (
-              <p className={`mt-2 text-xs ${clienteEncontrado ? 'text-emerald-700' : 'text-stone-500'}`}>{mensajeCarnet}</p>
+              <p className={`mt-2 text-xs ${clienteEncontrado ? 'text-emerald-700' : 'text-stone-600'}`}>{mensajeCarnet}</p>
             )}
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div>
                 <label className="mb-1 block text-xs font-semibold text-stone-600" htmlFor="nombre">Nombre *</label>
-                <input id="nombre" className={claseControl} value={nombre} onChange={editarDato(setNombre)} />
+                <input id="nombre" autoComplete="off" maxLength={150} className={claseControl} value={nombre} onChange={editarDato(v => setNombre(soloLetras(v)))} />
+                <ErrorCampo texto={errores.nombre} />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-stone-600" htmlFor="telefono">Teléfono</label>
-                <input id="telefono" className={claseControl} value={telefono} onChange={editarDato(setTelefono)} />
+                <input id="telefono" type="tel" inputMode="numeric" maxLength={8} autoComplete="off" className={claseControl} value={telefono} onChange={editarDato(v => setTelefono(soloDigitos(v, 8)))} />
+                <ErrorCampo texto={errores.telefono} />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-stone-600" htmlFor="correo">Correo</label>
-                <input id="correo" type="email" className={claseControl} value={correo} onChange={editarDato(setCorreo)} />
+                <input id="correo" type="email" autoComplete="off" className={claseControl} value={correo} onChange={editarDato(setCorreo)} />
+                <ErrorCampo texto={errores.correo} />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-stone-600" htmlFor="direccion">Dirección habitual</label>
-                <input id="direccion" className={claseControl} value={direccion} onChange={editarDato(setDireccion)} />
+                <input id="direccion" autoComplete="off" className={claseControl} value={direccion} onChange={editarDato(setDireccion)} />
               </div>
             </div>
 
@@ -309,6 +401,7 @@ export const Vender: React.FC = () => {
                 Confirmo que los datos del cliente son correctos
               </label>
             )}
+            <ErrorCampo texto={datosConfirmados ? undefined : errores.confirmacion} />
           </section>
 
           {/* PRODUCTOS */}
@@ -316,6 +409,7 @@ export const Vender: React.FC = () => {
             <h3 className="mb-3 font-semibold text-stone-900">Productos</h3>
             <input
               className={`${claseControl} mb-3`}
+              autoComplete="off"
               value={busqueda}
               onChange={e => setBusqueda(e.target.value)}
               placeholder="Buscar producto…"
@@ -325,13 +419,13 @@ export const Vender: React.FC = () => {
                 <li key={p.id_producto} className="flex items-center justify-between gap-3 py-2">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-stone-800">{p.nombre}</p>
-                    <p className="text-xs text-stone-500">
+                    <p className="text-xs text-stone-600">
                       {moneda.format(Number(p.precio))} · Stock: {Number(p.stock)}
                     </p>
                   </div>
                   <button
                     type="button"
-                    className="rounded-lg border border-primary px-3 py-1 text-sm font-semibold text-primary hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded-lg border border-primary px-3 py-1 text-sm font-semibold text-nube-oscuro hover:bg-primary hover:text-nube-oscuro disabled:cursor-not-allowed disabled:opacity-40"
                     onClick={() => agregar(p)}
                     disabled={Number(p.stock) <= 0}
                   >
@@ -339,8 +433,9 @@ export const Vender: React.FC = () => {
                   </button>
                 </li>
               ))}
-              {productosFiltrados.length === 0 && <li className="py-3 text-sm text-stone-500">No hay productos.</li>}
+              {productosFiltrados.length === 0 && <li className="py-3 text-sm text-stone-600">No hay productos.</li>}
             </ul>
+            <ErrorCampo texto={lineas.length === 0 ? errores.productos : undefined} />
           </section>
         </div>
 
@@ -348,7 +443,7 @@ export const Vender: React.FC = () => {
         <aside className={`${claseTarjeta} h-fit lg:sticky lg:top-24`}>
           <h3 className="mb-3 font-semibold text-stone-900">Resumen de la venta</h3>
           {lineas.length === 0 ? (
-            <p className="text-sm text-stone-500">Aún no agregaste productos.</p>
+            <p className="text-sm text-stone-600">Aún no agregaste productos.</p>
           ) : (
             <ul className="mb-4 divide-y divide-stone-100">
               {lineas.map(l => (
@@ -397,28 +492,101 @@ export const Vender: React.FC = () => {
             ['Por cobrar', moneda.format(resumen.porCobrar)],
           ].map(([titulo, valor]) => (
             <div key={titulo} className={claseTarjeta}>
-              <p className="text-xs font-semibold uppercase text-stone-500">{titulo}</p>
+              <p className="text-xs font-semibold uppercase text-stone-600">{titulo}</p>
               <p className="mt-1 text-xl font-bold text-stone-900">{valor}</p>
             </div>
           ))}
         </div>
 
+        <div className="mb-4 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <label className="grid gap-1 text-xs font-semibold text-stone-600">
+              Desde
+              <input
+                type="date"
+                value={fechaDesde}
+                max={fechaHasta || undefined}
+                onChange={e => setFechaDesde(e.target.value)}
+                className={claseControl}
+              />
+            </label>
+            <label className="grid gap-1 text-xs font-semibold text-stone-600">
+              Hasta
+              <input
+                type="date"
+                value={fechaHasta}
+                min={fechaDesde || undefined}
+                onChange={e => setFechaHasta(e.target.value)}
+                className={claseControl}
+              />
+            </label>
+            <label className="grid gap-1 text-xs font-semibold text-stone-600">
+              Estado del pedido
+              <select
+                value={filtroEstadoPedido}
+                onChange={e => setFiltroEstadoPedido(e.target.value)}
+                className={claseControl}
+              >
+                <option value="todos">Todos los estados</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="pagado">Pagado</option>
+                <option value="enviado">Enviado</option>
+                <option value="entregado">Entregado</option>
+                <option value="anulada">Anulado</option>
+              </select>
+            </label>
+            <label className="grid gap-1 text-xs font-semibold text-stone-600">
+              Tipo de pedido
+              <select
+                value={filtroTipoPedido}
+                onChange={e => setFiltroTipoPedido(e.target.value)}
+                className={claseControl}
+              >
+                <option value="todos">Todos los tipos</option>
+                <option value="tienda">Venta de tienda</option>
+                <option value="en-linea">Pedido en línea</option>
+              </select>
+            </label>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-stone-600">Mostrando {ventasFiltradas.length} de {misVentas.length} ventas</p>
+            <button
+              type="button"
+              onClick={() => {
+                setFechaDesde('');
+                setFechaHasta('');
+                setFiltroEstadoPedido('todos');
+                setFiltroTipoPedido('todos');
+              }}
+              className="rounded-lg px-3 py-2 text-sm font-semibold text-nube-oscuro transition hover:bg-primary/10"
+            >
+              Limpiar filtros
+            </button>
+          </div>
+        </div>
+
         <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="bg-stone-50 text-xs uppercase text-stone-500">
+            <thead className="bg-stone-50 text-xs uppercase text-stone-600">
               <tr>
                 <th className="px-4 py-3">#</th>
                 <th className="px-4 py-3">Fecha</th>
                 <th className="px-4 py-3">Cliente</th>
                 <th className="px-4 py-3">Total</th>
                 <th className="px-4 py-3">Pedido</th>
+                <th className="px-4 py-3">Tipo</th>
                 <th className="px-4 py-3">Pago</th>
+                <th className="px-4 py-3">Acciones</th>
+                <th className="px-4 py-3">Ticket</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
-              {misVentas.map(v => {
+              {ventasFiltradas.map(v => {
                 const pago = v.pagos && v.pagos[0];
                 const puedeCobrar = v.estado === 'registrada' && v.estado_pedido === 'pendiente';
+                const puedeCancelar =
+                  v.estado === 'registrada' &&
+                  (v.estado_pedido === 'pendiente' || v.estado_pedido === 'pagado');
                 return (
                   <tr key={v.id_venta}>
                     <td className="px-4 py-3 font-medium">{v.id_venta}</td>
@@ -430,6 +598,7 @@ export const Vender: React.FC = () => {
                         {v.estado === 'anulada' ? 'anulada' : v.estado_pedido}
                       </span>
                     </td>
+                    <td className="px-4 py-3">{v.id_usuario != null ? 'Pedido en línea' : 'Venta de tienda'}</td>
                     <td className="px-4 py-3">
                       {pago ? (
                         <span className="text-stone-700">{pago.metodo} · {moneda.format(Number(pago.monto))}</span>
@@ -449,16 +618,52 @@ export const Vender: React.FC = () => {
                         </div>
                       ) : '—'}
                     </td>
+                    <td className="px-4 py-3">
+                      {puedeCancelar ? (
+                        <CuentaAtrasCancelar
+                          creadaEn={v.createdAt || v.fecha}
+                          texto="Anular venta"
+                          cancelando={cancelando === v.id_venta}
+                          onCancelar={() => solicitarAnulacion(v.id_venta)}
+                        />
+                      ) : '—'}
+                    </td>
+                    <td className="px-4 py-3">
+                      {v.estado === 'registrada' && v.estado_pedido !== 'pendiente' ? (
+                        <button
+                          type="button"
+                          onClick={() => descargarTicket(v.id_venta)}
+                          disabled={descargando === v.id_venta}
+                          className={`${claseBoton} px-3 py-1 text-xs`}
+                        >
+                          Ticket
+                        </button>
+                      ) : '—'}
+                    </td>
                   </tr>
                 );
               })}
-              {misVentas.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-6 text-center text-stone-500">Todavía no registraste ventas.</td></tr>
+              {ventasFiltradas.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="px-4 py-6 text-center text-stone-600">
+                    {misVentas.length === 0 ? 'Todavía no registraste ventas.' : 'No hay ventas que coincidan con los filtros.'}
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
         </div>
       </section>
+      {ventaAAnular !== null && (
+        <ConfirmacionDialog
+          titulo={`¿Anular la venta #${ventaAAnular}?`}
+          mensaje="Los productos de esta venta se devolverán al inventario."
+          aviso={ventaSeleccionadaParaAnular?.estado_pedido === 'pagado' ? 'El pago quedará en el historial; recuerda gestionar manualmente el reembolso.' : undefined}
+          textoConfirmar="Sí, anular venta"
+          onConfirmar={confirmarAnulacion}
+          onCancelar={() => setVentaAAnular(null)}
+        />
+      )}
     </div>
   );
 };

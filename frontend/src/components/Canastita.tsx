@@ -5,6 +5,7 @@ import type { CartItem } from '../interfaces';
 import { registrarVentaAPI, subirComprobanteAPI, urlImagen } from '../services/apiService';
 import { QrPagoFalso } from './QrPagoFalso';
 import { obtenerToken, obtenerUsuarioGuardado } from '../services/authService';
+import { direccionValida } from '../utils/validaciones';
 
 const ENVIO_GRATIS_DESDE = 100;
 const COSTO_ENVIO = 15;
@@ -36,7 +37,7 @@ export const Canastita: React.FC<CanastitaProps> = ({
   const [errorCompra, setErrorCompra] = useState('');
   const [procesando, setProcesando] = useState(false);
 
-  const [conEnvio, setConEnvio] = useState(false);
+
   const [direccion, setDireccion] = useState('');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [buscandoGps, setBuscandoGps] = useState(false);
@@ -64,7 +65,7 @@ export const Canastita: React.FC<CanastitaProps> = ({
   const cantidadTotal = items.reduce((total, item) => total + item.cantidad, 0);
   const vacia = items.length === 0;
   const envioGratis = subtotal >= ENVIO_GRATIS_DESDE;
-  const envio = vacia || !conEnvio || envioGratis ? 0 : COSTO_ENVIO;
+  const envio = vacia || envioGratis ? 0 : COSTO_ENVIO;
   const total = subtotal + envio;
   const faltaParaGratis = Math.max(0, ENVIO_GRATIS_DESDE - subtotal);
   const progreso = Math.min(100, (subtotal / ENVIO_GRATIS_DESDE) * 100);
@@ -112,6 +113,10 @@ export const Canastita: React.FC<CanastitaProps> = ({
       setErrorCompra('Para continuar con el pago escribe tu dirección o usa tu ubicación actual (puedes poner ambas).');
       return;
     }
+    if (direccion.trim() && !direccionValida(direccion)) {
+      setErrorCompra('La dirección debe tener al menos 5 caracteres.');
+      return;
+    }
 
     setProcesando(true);
     try {
@@ -120,7 +125,7 @@ export const Canastita: React.FC<CanastitaProps> = ({
           id_producto: producto.id_producto,
           cantidad,
         })),
-        con_envio: conEnvio,
+        con_envio: true,
         direccion_entrega: direccion.trim() || undefined,
         ubicacion_lat: coords ? coords.lat : undefined,
         ubicacion_lng: coords ? coords.lng : undefined,
@@ -185,7 +190,7 @@ export const Canastita: React.FC<CanastitaProps> = ({
             </svg>
             <h2 className="font-serif text-xl font-bold text-stone-900">
               Tu Canastita{' '}
-              <span className="font-sans text-sm font-normal text-stone-500">
+              <span className="font-sans text-sm font-normal text-stone-600">
                 ({cantidadTotal} {cantidadTotal === 1 ? 'ítem' : 'ítems'})
               </span>
             </h2>
@@ -194,7 +199,7 @@ export const Canastita: React.FC<CanastitaProps> = ({
             type="button"
             onClick={cerrarCanastita}
             aria-label="Cerrar canastita"
-            className="rounded-full p-2 text-stone-500 transition-colors hover:bg-stone-200/70 hover:text-stone-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+            className="rounded-full p-2 text-stone-600 transition-colors hover:bg-stone-200/70 hover:text-stone-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
           >
             <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6L6 18" />
@@ -212,7 +217,7 @@ export const Canastita: React.FC<CanastitaProps> = ({
               <span className="font-semibold">{dinero(totalPagado)}</span>
             </p>
             <QrPagoFalso semilla={ventaId} />
-            <p className="text-xs text-stone-500">
+            <p className="text-xs text-stone-600">
               Este QR es ilustrativo y no procesa pagos. Realiza el pago por el canal indicado por la tienda y luego sube tu comprobante.
               Tu pedido se prepara cuando el vendedor confirme el pago.
             </p>
@@ -242,10 +247,10 @@ export const Canastita: React.FC<CanastitaProps> = ({
 
             {errorCompra && <p role="alert" className="text-sm text-rose-700">{errorCompra}</p>}
 
-            <button type="button" onClick={irAMisPedidos} className="text-sm font-semibold text-stone-800 underline">
+            <button type="button" onClick={irAMisPedidos} className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primaryFocus">
               Ver mis pedidos
             </button>
-            <button type="button" onClick={cerrarCanastita} className="text-sm font-semibold text-stone-600 hover:underline">
+            <button type="button" onClick={cerrarCanastita} className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-nube-oscuro ring-1 ring-primary/60 transition hover:bg-primary/15">
               Seguir viendo productos
             </button>
           </div>
@@ -255,7 +260,7 @@ export const Canastita: React.FC<CanastitaProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12l1 13H5L6 7zM9 7a3 3 0 016 0" />
             </svg>
             <p className="font-serif text-lg font-bold text-stone-800">Tu canastita está vacía</p>
-            <p className="text-sm text-stone-500">Agrega productos desde el catálogo para verlos aquí.</p>
+            <p className="text-sm text-stone-600">Agrega productos desde el catálogo para verlos aquí.</p>
             <button
               type="button"
               onClick={cerrarCanastita}
@@ -279,7 +284,7 @@ export const Canastita: React.FC<CanastitaProps> = ({
                     {producto.imagen ? (
                       <img src={urlImagen(producto.imagen)} alt={producto.nombre} className="h-full w-full object-cover" />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-[10px] text-stone-400">Sin imagen</div>
+                      <div className="flex h-full w-full items-center justify-center text-[10px] text-stone-600">Sin imagen</div>
                     )}
                   </div>
 
@@ -287,7 +292,7 @@ export const Canastita: React.FC<CanastitaProps> = ({
                     <p className="truncate font-serif text-[15px] font-bold text-stone-900" title={producto.nombre}>
                       {producto.nombre}
                     </p>
-                    <p className="text-sm text-stone-400">{dinero(precio)} c/u</p>
+                    <p className="text-sm text-stone-600">{dinero(precio)} c/u</p>
 
                     <div className="mt-2 flex items-center gap-3">
                       <div className="flex items-center rounded-lg border border-stone-200 bg-white">
@@ -296,7 +301,7 @@ export const Canastita: React.FC<CanastitaProps> = ({
                           onClick={() => onCambiarCantidad(producto.id_producto, -1)}
                           disabled={cantidad <= 1}
                           aria-label={`Quitar una unidad de ${producto.nombre}`}
-                          className="px-2 py-1 text-stone-500 transition-colors hover:text-stone-900 disabled:cursor-not-allowed disabled:opacity-40"
+                          className="px-2 py-1 text-stone-600 transition-colors hover:text-stone-900 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
                             <path strokeLinecap="round" d="M5 12h14" />
@@ -309,7 +314,7 @@ export const Canastita: React.FC<CanastitaProps> = ({
                           disabled={sinMas}
                           aria-label={`Agregar una unidad de ${producto.nombre}`}
                           title={sinMas ? 'Alcanzaste el stock disponible' : undefined}
-                          className="px-2 py-1 text-stone-500 transition-colors hover:text-stone-900 disabled:cursor-not-allowed disabled:opacity-40"
+                          className="px-2 py-1 text-stone-600 transition-colors hover:text-stone-900 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
                             <path strokeLinecap="round" d="M12 5v14M5 12h14" />
@@ -321,7 +326,7 @@ export const Canastita: React.FC<CanastitaProps> = ({
                         type="button"
                         onClick={() => onQuitar(producto.id_producto)}
                         aria-label={`Quitar ${producto.nombre} de la canastita`}
-                        className="rounded-md p-1 text-stone-400 transition-colors hover:text-rose-600"
+                        className="rounded-md p-1 text-stone-600 transition-colors hover:text-rose-600"
                       >
                         <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M10 11v6M14 11v6M6 7l1 12a1 1 0 001 1h8a1 1 0 001-1l1-12M9 7V4h6v3" />
@@ -364,10 +369,6 @@ export const Canastita: React.FC<CanastitaProps> = ({
             )}
 
             <div className="mb-5 space-y-3">
-              <label className="flex items-center justify-between rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm font-semibold text-stone-700">
-                Solicitar envío a domicilio
-                <input type="checkbox" checked={conEnvio} onChange={e => setConEnvio(e.target.checked)} className="h-4 w-4" />
-              </label>
 
               <div className="space-y-2 rounded-xl border border-stone-200 bg-white p-3">
                 <label htmlFor="c-dir" className="block text-xs font-semibold text-stone-600">Dirección de entrega (obligatoria)</label>
@@ -389,7 +390,7 @@ export const Canastita: React.FC<CanastitaProps> = ({
               </div>
               <div className="flex justify-between">
                 <dt>Envío estimado</dt>
-                <dd className={envioGratis ? 'font-bold text-emerald-600' : 'font-semibold text-stone-800'}>
+                <dd className={envioGratis ? 'font-bold text-emerald-700' : 'font-semibold text-stone-800'}>
                   {envioGratis ? 'GRATIS' : dinero(envio)}
                 </dd>
               </div>

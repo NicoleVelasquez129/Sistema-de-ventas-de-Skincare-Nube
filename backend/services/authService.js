@@ -5,6 +5,7 @@ const { Op } = require("sequelize");
 const sequelize = require("../config/database");
 const { Usuario, Cliente } = require("../models");
 const { enviarCorreo } = require("./emailService");
+const { nombreValido, celularValido } = require("../utils/validaciones");
 
 const REGEX_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const VIGENCIA_ENLACE_MS = 60 * 60 * 1000; // 1 hora
@@ -61,8 +62,8 @@ const loginService = async (correo, contrasena) => {
 // Crea una cuenta de cliente (nunca de administrador) y deja la sesión iniciada
 const registrarClienteService = async (datos) => {
     const { nombre, correo, contrasena, telefono } = datos || {};
-    if (typeof nombre !== "string" || !nombre.trim() || nombre.trim().length > 150) {
-        throw errorHttp(400, "El nombre es obligatorio (máximo 150 caracteres).");
+    if (!nombreValido(nombre)) {
+        throw errorHttp(400, "El nombre debe tener solo letras y espacios (entre 2 y 150 caracteres).");
     }
     const correoNormalizado = typeof correo === "string" ? correo.trim().toLowerCase() : "";
     if (!REGEX_CORREO.test(correoNormalizado) || correoNormalizado.length > 150) {
@@ -70,8 +71,8 @@ const registrarClienteService = async (datos) => {
     }
     
     validarContrasenaNueva(contrasena);
-    if (typeof telefono !== "string" || !telefono.trim() || telefono.trim().length > 50) {
-        throw errorHttp(400, "El celular es obligatorio (máximo 50 caracteres).");
+    if (!celularValido(telefono)) {
+        throw errorHttp(400, "El celular debe tener exactamente 8 números.");
     }
  
 

@@ -1,7 +1,7 @@
 import type { Producto, Cliente, Categoria } from '../interfaces';
 import { cabecerasAuth } from './authService';
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 const API_ORIGIN = API_URL.replace(/\/api$/, '');
 
 // Datos que el administrador puede guardar de un producto
@@ -164,12 +164,16 @@ export const registrarVentaAPI = async (ventaData: {
   return await response.json();
 };
 
-export const cancelarVentaAPI = async (idVenta: number) => {
+export const cancelarVentaAPI = async (idVenta: number): Promise<{ id_venta: number; estado: string }> => {
   const response = await fetch(`${API_URL}/ventas/${idVenta}/cancelar`, {
     method: 'PATCH',
     headers: cabecerasAuth(),
   });
-  return await response.json();
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data?.success) {
+    throw new Error(data?.error || data?.mensaje || 'No se pudo cancelar la venta.');
+  }
+  return data.data;
 };
 
 export interface VentaResumenAPI {
@@ -182,6 +186,7 @@ export interface VentaResumenAPI {
     id_producto: number;
     cantidad: number;
     precio_unitario: number | string;
+    costo_unitario?: number | string;
     subtotal: number | string;
     Producto?: Producto;
   }[];
@@ -264,7 +269,9 @@ export const confirmarPagoAPI = async (idVenta: number, metodo: string) => {
 
 export interface VentaVendedorAPI {
   id_venta: number;
+  id_usuario?: number | null;
   fecha: string;
+  createdAt?: string;
   total: number | string;
   envio: number | string;
   estado: string;
@@ -286,6 +293,7 @@ export const obtenerMisVentasAPI = async (): Promise<VentaVendedorAPI[]> => {
 export interface PedidoCliente {
   id_venta: number;
   fecha: string;
+  createdAt?: string;
   total: number | string;
   envio: number | string;
   estado: string;
@@ -448,4 +456,43 @@ export const descargarReporteAPI = async (
   enlace.click();
   enlace.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
+export interface FilaVentasReporte { clave: string; ventas: number; ingresos: number; costo: number; ganancia: number }
+export interface ReporteVentasData {
+  desde: string; hasta: string; agrupar: 'dia' | 'mes';
+  filas: FilaVentasReporte[]; por_vendedor: FilaVentasReporte[]; totales: FilaVentasReporte;
+}
+export interface FilaGananciasReporte { producto: string; unidades: number; ingresos: number; costo: number; ganancia: number }
+export interface ReporteGananciasData {
+  desde: string; hasta: string; filas: FilaGananciasReporte[];
+  totales: { unidades: number; ingresos: number; costo: number; ganancia: number };
+}
+export interface FilaInventarioReporte {
+  producto: string; categoria: string; stock: number; stock_minimo: number;
+  costo: number; valor_costo: number; bajo_minimo: boolean;
+}
+export interface ReporteInventarioData {
+  filas: FilaInventarioReporte[];
+  totales: { productos: number; unidades: number; valor_costo: number; bajo_minimo: number };
+}
+export type DatosReporte = ReporteVentasData | ReporteGananciasData | ReporteInventarioData;
+
+export const obtenerReporteAPI = async (
+  tipo: TipoReporte,
+  filtros: { desde?: string; hasta?: string; agrupar?: 'dia' | 'mes' }
+): Promise<DatosReporte> => {
+  const params = new URLSearchParams();
+  if (tipo !== 'inventario') {
+    params.set('desde', filtros.desde ?? '');
+    params.set('hasta', filtros.hasta ?? '');
+  }
+  if (tipo === 'ventas') params.set('agrupar', filtros.agrupar ?? 'dia');
+
+  const response = await fetch(`${API_URL}/reportes/${tipo}?${params.toString()}`, { headers: cabecerasAuth() });
+  const body = await response.json().catch(() => null);
+  if (!response.ok || !body?.success) {
+    throw new Error(body?.error || body?.mensaje || 'No se pudo cargar el informe.');
+  }
+  return body.data as DatosReporte;
 };

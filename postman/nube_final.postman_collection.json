@@ -1,0 +1,1122 @@
+﻿{
+    "info":  {
+                 "_postman_id":  "9f8e7d6c-5b4a-4321-8765-abcdef012345",
+                 "name":  "Skincare Nube - Pruebas completas",
+                 "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+             },
+    "event":  [
+                  {
+                      "listen":  "prerequest",
+                      "script":  {
+                                     "type":  "text/javascript",
+                                     "exec":  [
+                                                  "const n = pm.info.requestName;",
+                                                  "const t = { admin: \"adminToken\", vend: \"vendToken\", cliente: \"clienteToken\", falso: \"tokenFalso\" };",
+                                                  "const m = n.match(/\\[(admin|vend|cliente|falso)\\]/);",
+                                                  "pm.request.headers.upsert({ key: \"Content-Type\", value: \"application/json\" });",
+                                                  "if (m) pm.request.headers.upsert({ key: \"Authorization\", value: \"Bearer \" + pm.collectionVariables.get(t[m[1]]) });"
+                                              ]
+                                 }
+                  },
+                  {
+                      "listen":  "test",
+                      "script":  {
+                                     "type":  "text/javascript",
+                                     "exec":  [
+                                                  "const n = pm.info.requestName;",
+                                                  "const e = n.match(/\\[(\\d{3})\\]/);",
+                                                  "if (e) pm.test(n + \" -\u003e \" + e[1], () =\u003e pm.response.to.have.status(Number(e[1])));",
+                                                  "let j = {}; try { j = pm.response.json(); } catch (x) {}",
+                                                  "if (e \u0026\u0026 e[1] === \"400\") pm.test(\"Mensaje de error claro\", () =\u003e { pm.expect(j.success).to.eql(false); pm.expect(String(j.error || j.mensaje)).to.not.eql(\"undefined\"); });",
+                                                  "const g = n.match(/\\[guardar:(\\w+)\\]/);",
+                                                  "if (g) { const d = j.data || {}; pm.collectionVariables.set(g[1], d.token || d.id_venta || (d.venta \u0026\u0026 d.venta.id_venta) || d.id_categoria || \"\"); }",
+                                                  "if (/\\[buscar0\\]/.test(n)) pm.test(\"No devuelve todo el catalogo\", () =\u003e { pm.expect(Array.isArray(j.data)).to.be.true; pm.expect(j.data.length).to.eql(0); });",
+                                                  "if (/\\[helmet\\]/.test(n)) pm.test(\"Helmet activo\", () =\u003e pm.expect(pm.response.headers.has(\"X-Content-Type-Options\")).to.be.true);"
+                                              ]
+                                 }
+                  }
+              ],
+    "item":  [
+                 {
+                     "name":  "00 Sesiones",
+                     "item":  [
+                                  {
+                                      "name":  "S1 [200] [guardar:adminToken] Login administrador",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/auth/login",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"correo\":\"{{adminCorreo}}\",\"contrasena\":\"{{adminContrasena}}\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "S2 [200] [guardar:vendToken] Login vendedor",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/auth/login",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"correo\":\"{{vendCorreo}}\",\"contrasena\":\"{{vendContrasena}}\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "S3 [201] [guardar:clienteToken] Registro de cliente valido",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/auth/registro",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"nombre\":\"Cliente Prueba\",\"correo\":\"t{{$timestamp}}@prueba.com\",\"contrasena\":\"Prueba2026\",\"telefono\":\"71234567\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "01 Validacion de registro",
+                     "item":  [
+                                  {
+                                      "name":  "V1 [400] Nombre con numeros y simbolos",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/auth/registro",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"nombre\":\"Ana123!\",\"correo\":\"t{{$timestamp}}@prueba.com\",\"contrasena\":\"Prueba2026\",\"telefono\":\"71234567\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "V2 [400] Celular no numerico",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/auth/registro",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"nombre\":\"Ana Perez\",\"correo\":\"t{{$timestamp}}@prueba.com\",\"contrasena\":\"Prueba2026\",\"telefono\":\"7123abcd\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "V3 [400] Celular de 7 digitos",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/auth/registro",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"nombre\":\"Ana Perez\",\"correo\":\"t{{$timestamp}}@prueba.com\",\"contrasena\":\"Prueba2026\",\"telefono\":\"7123456\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "V4 [400] Celular de 9 digitos",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/auth/registro",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"nombre\":\"Ana Perez\",\"correo\":\"t{{$timestamp}}@prueba.com\",\"contrasena\":\"Prueba2026\",\"telefono\":\"712345678\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "V5 [400] Nombre de un caracter",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/auth/registro",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"nombre\":\"A\",\"correo\":\"t{{$timestamp}}@prueba.com\",\"contrasena\":\"Prueba2026\",\"telefono\":\"71234567\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "V6 [400] Celular enviado como numero JSON",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/auth/registro",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"nombre\":\"Ana Perez\",\"correo\":\"t{{$timestamp}}@prueba.com\",\"contrasena\":\"Prueba2026\",\"telefono\":71234567}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "V7 [400] Correo invalido",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/auth/registro",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"nombre\":\"Ana Perez\",\"correo\":\"sin-arroba\",\"contrasena\":\"Prueba2026\",\"telefono\":\"71234567\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "V8 [400] Contrasena sin numero",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/auth/registro",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"nombre\":\"Ana Perez\",\"correo\":\"t{{$timestamp}}@prueba.com\",\"contrasena\":\"SoloLetrasAqui\",\"telefono\":\"71234567\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "V9 [401] Login con contrasena incorrecta",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/auth/login",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"correo\":\"{{adminCorreo}}\",\"contrasena\":\"incorrecta999\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "02 Cliente y venta en caja",
+                     "item":  [
+                                  {
+                                      "name":  "C1 [400] [vend] Carnet con simbolos",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/ventas/vendedor",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"cliente\":{\"nombre\":\"Maria Lopez\",\"telefono\":\"71234567\",\"correo\":\"maria@correo.com\",\"carnet\":\"12#45$6\"},\"items\":[{\"id_producto\":\"{{productoId}}\",\"cantidad\":1}]}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "C2 [400] [vend] Carnet demasiado corto",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/ventas/vendedor",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"cliente\":{\"nombre\":\"Maria Lopez\",\"telefono\":\"71234567\",\"correo\":\"maria@correo.com\",\"carnet\":\"123\"},\"items\":[{\"id_producto\":\"{{productoId}}\",\"cantidad\":1}]}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "C3 [400] [vend] Carnet con espacio",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/ventas/vendedor",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"cliente\":{\"nombre\":\"Maria Lopez\",\"telefono\":\"71234567\",\"correo\":\"maria@correo.com\",\"carnet\":\"123 456\"},\"items\":[{\"id_producto\":\"{{productoId}}\",\"cantidad\":1}]}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "C4 [400] [vend] Nombre con numeros",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/ventas/vendedor",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"cliente\":{\"nombre\":\"Maria 123\",\"telefono\":\"71234567\",\"correo\":\"maria@correo.com\"},\"items\":[{\"id_producto\":\"{{productoId}}\",\"cantidad\":1}]}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "C5 [400] [vend] Telefono no numerico",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/ventas/vendedor",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"cliente\":{\"nombre\":\"Maria Lopez\",\"telefono\":\"abc12345\",\"correo\":\"maria@correo.com\"},\"items\":[{\"id_producto\":\"{{productoId}}\",\"cantidad\":1}]}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "C6 [201] [vend] [guardar:ventaC6] Carnet valido en minusculas",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/ventas/vendedor",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"cliente\":{\"nombre\":\"Maria Lopez\",\"telefono\":\"71234567\",\"correo\":\"maria@correo.com\",\"carnet\":\"ab1234-1\"},\"items\":[{\"id_producto\":\"{{productoId}}\",\"cantidad\":1}]}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "C7 [201] [vend] [guardar:ventaC7] Carnet y telefono omitidos",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/ventas/vendedor",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"cliente\":{\"nombre\":\"Cliente Rapido\"},\"items\":[{\"id_producto\":\"{{productoId}}\",\"cantidad\":1}]}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "C8 [400] [vend] Cantidad negativa",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/ventas/vendedor",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"cliente\":{\"nombre\":\"Maria Lopez\",\"telefono\":\"71234567\",\"correo\":\"maria@correo.com\"},\"items\":[{\"id_producto\":\"{{productoId}}\",\"cantidad\":-1}]}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "C9 [400] [vend] Cantidad cero",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/ventas/vendedor",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"cliente\":{\"nombre\":\"Maria Lopez\",\"telefono\":\"71234567\",\"correo\":\"maria@correo.com\"},\"items\":[{\"id_producto\":\"{{productoId}}\",\"cantidad\":0}]}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "C10 [400] [vend] Cantidad decimal",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/ventas/vendedor",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"cliente\":{\"nombre\":\"Maria Lopez\",\"telefono\":\"71234567\",\"correo\":\"maria@correo.com\"},\"items\":[{\"id_producto\":\"{{productoId}}\",\"cantidad\":1.5}]}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "C11 [400] [vend] Cantidad mayor al stock",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/ventas/vendedor",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"cliente\":{\"nombre\":\"Maria Lopez\",\"telefono\":\"71234567\",\"correo\":\"maria@correo.com\"},\"items\":[{\"id_producto\":\"{{productoId}}\",\"cantidad\":999999}]}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "C12 [400] [vend] Carrito vacio",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/ventas/vendedor",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"cliente\":{\"nombre\":\"Maria Lopez\",\"telefono\":\"71234567\",\"correo\":\"maria@correo.com\"},\"items\":[]}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "03 Compra del cliente web",
+                     "item":  [
+                                  {
+                                      "name":  "W1 [400] [cliente] Direccion de una letra",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/ventas",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"items\":[{\"id_producto\":\"{{productoId}}\",\"cantidad\":1}],\"direccion_entrega\":\"A\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "W2 [400] [cliente] Sin direccion ni ubicacion",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/ventas",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"items\":[{\"id_producto\":\"{{productoId}}\",\"cantidad\":1}]}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "W3 [400] [cliente] Latitud fuera de rango",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/ventas",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"items\":[{\"id_producto\":\"{{productoId}}\",\"cantidad\":1}],\"ubicacion_lat\":200,\"ubicacion_lng\":-66}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "W4 [400] [cliente] Carnet invalido",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/ventas",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"items\":[{\"id_producto\":\"{{productoId}}\",\"cantidad\":1}],\"direccion_entrega\":\"Av. America 123\",\"carnet\":\"12#45\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "W5 [201] [cliente] [guardar:ventaW5] Compra valida con direccion",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/ventas",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"items\":[{\"id_producto\":\"{{productoId}}\",\"cantidad\":1}],\"direccion_entrega\":\"Av. America 123, Cochabamba\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "04 Productos y categorias",
+                     "item":  [
+                                  {
+                                      "name":  "P1 [400] [admin] Precio cero",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/productos",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"nombre\":\"Prueba\",\"precio\":0,\"stock\":10,\"stock_minimo\":2,\"id_categoria\":\"{{categoriaId}}\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "P2 [400] [admin] Precio mayor a 5000",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/productos",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"nombre\":\"Prueba\",\"precio\":5001,\"stock\":10,\"stock_minimo\":2,\"id_categoria\":\"{{categoriaId}}\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "P3 [400] [admin] Stock cero",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/productos",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"nombre\":\"Prueba\",\"precio\":50,\"stock\":0,\"stock_minimo\":2,\"id_categoria\":\"{{categoriaId}}\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "P4 [400] [admin] Stock 201",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/productos",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"nombre\":\"Prueba\",\"precio\":50,\"stock\":201,\"stock_minimo\":2,\"id_categoria\":\"{{categoriaId}}\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "P5 [400] [admin] Stock decimal",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/productos",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"nombre\":\"Prueba\",\"precio\":50,\"stock\":10.5,\"stock_minimo\":2,\"id_categoria\":\"{{categoriaId}}\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "P6 [400] [admin] Stock minimo cero",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/productos",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"nombre\":\"Prueba\",\"precio\":50,\"stock\":10,\"stock_minimo\":0,\"id_categoria\":\"{{categoriaId}}\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "P7 [400] [admin] Imagen con URL no valida",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/productos",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"nombre\":\"Prueba\",\"precio\":50,\"stock\":10,\"stock_minimo\":2,\"id_categoria\":\"{{categoriaId}}\",\"imagen\":\"javascript:alert(1)\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "K1 [400] [admin] Categoria con simbolos",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/categorias",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"nombre\":\"Cremas@#\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "K2 [400] [admin] Categoria de un caracter",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/categorias",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"nombre\":\"A\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "K3 [201] [admin] [guardar:categoriaTmp] Categoria valida",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/categorias",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"nombre\":\"Mascarillas Prueba\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "K4 [409] [admin] Categoria repetida en mayusculas",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/categorias",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"nombre\":\"MASCARILLAS PRUEBA\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "05 Control de vendedores",
+                     "item":  [
+                                  {
+                                      "name":  "D1 [400] [admin] Nombre con numeros",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/usuarios/vendedores",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"nombre\":\"Luis99!\",\"correo\":\"v{{$timestamp}}@prueba.com\",\"contrasena\":\"Prueba2026\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "D2 [400] [admin] Nombre de un caracter",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/usuarios/vendedores",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"nombre\":\"L\",\"correo\":\"v{{$timestamp}}@prueba.com\",\"contrasena\":\"Prueba2026\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "D3 [400] [admin] Nombre omitido",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/usuarios/vendedores",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"correo\":\"x{{$timestamp}}@prueba.com\",\"contrasena\":\"Prueba2026\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "D4 [403] [vend] Vendedor intenta crear vendedor",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/usuarios/vendedores",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"nombre\":\"Luis Perez\",\"correo\":\"v{{$timestamp}}@prueba.com\",\"contrasena\":\"Prueba2026\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "06 Seguridad y autorizacion",
+                     "item":  [
+                                  {
+                                      "name":  "A1 [401] Ruta de admin sin token",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/ventas"
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "A2 [401] [falso] Token falso",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/ventas"
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "A3 [403] [cliente] Cliente en ruta de admin",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/usuarios"
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "A4 [403] [cliente] Cliente crea producto",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/productos",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"nombre\":\"Prueba\",\"precio\":50,\"stock\":10,\"stock_minimo\":2,\"id_categoria\":\"{{categoriaId}}\"}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "A5 [403] [vend] Vendedor pide reportes",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/reportes/ventas"
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "A6 [401] Productos todos=true sin token",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/productos?todos=true"
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "A7 [400] [admin] ID invalido en producto",
+                                      "request":  {
+                                                      "method":  "PUT",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/productos/abc",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"precio\":10}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "A8 [400] [admin] ID negativo en venta",
+                                      "request":  {
+                                                      "method":  "PATCH",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/ventas/-5/cancelar"
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "A9 [200] [buscar0] Busqueda con inyeccion SQL",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/productos?buscar=%27%20OR%201%3D1%20--"
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "A10 [200] Busqueda normal",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/productos?buscar=serum"
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "A11 [200] [helmet] Encabezados de seguridad",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/productos"
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "A12 [401] Subir imagen sin token",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/upload"
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "07 Limpieza",
+                     "item":  [
+                                  {
+                                      "name":  "L1 [200] [vend] Cancelar venta C6",
+                                      "request":  {
+                                                      "method":  "PATCH",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/ventas/{{ventaC6}}/cancelar"
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "L2 [200] [vend] Cancelar venta C7",
+                                      "request":  {
+                                                      "method":  "PATCH",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/ventas/{{ventaC7}}/cancelar"
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "L3 [200] [admin] Cancelar venta W5",
+                                      "request":  {
+                                                      "method":  "PATCH",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/ventas/{{ventaW5}}/cancelar"
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "L4 [200] [admin] Borrar categoria de prueba",
+                                      "request":  {
+                                                      "method":  "DELETE",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "http://localhost:3000/api/categorias/{{categoriaTmp}}"
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 }
+             ],
+    "variable":  [
+                     {
+                         "key":  "baseUrl",
+                         "value":  "http://localhost:3000",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "adminCorreo",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "adminContrasena",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "vendCorreo",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "vendContrasena",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "productoId",
+                         "value":  "1",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "categoriaId",
+                         "value":  "1",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "adminToken",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "vendToken",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "clienteToken",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "ventaC6",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "ventaC7",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "ventaW5",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "categoriaTmp",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "tokenFalso",
+                         "value":  "abc.def.ghi",
+                         "type":  "string"
+                     }
+                 ]
+}

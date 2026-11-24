@@ -1,8 +1,6 @@
 node_modules/
 backend/node_modules/
 .env
-.env.docker
 backend/.env
 .git
 npm-debug.log
-.env.example

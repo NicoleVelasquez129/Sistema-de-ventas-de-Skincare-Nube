@@ -126,7 +126,7 @@ const TarjetaPedido: React.FC<TarjetaProps> = ({ pedido: p, onCambio, onError })
 
       <div className="space-y-4 p-5">
         <p className="text-sm text-stone-700">
-          {telefono ? <a href={`tel:${telefono}`} className="font-semibold text-nube-oscuro underline">{telefono}</a> : 'Sin celular registrado'}
+          {telefono ? <a href={`tel:${telefono}`} className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-nube-oscuro ring-1 ring-primary/60 transition hover:bg-primary/15">{telefono}</a> : 'Sin celular registrado'}
           {p.Cliente?.correo ? ` · ${p.Cliente.correo}` : ''}
         </p>
 
@@ -314,7 +314,7 @@ export const PedidosEnLinea: React.FC = () => {
                   : 'bg-white text-nube-oscuro ring-1 ring-primary/50 hover:bg-primary/15'
               }`}
             >
-              {t.etiqueta} ({pedidos.filter(t.filtro).length})
+              {t.etiqueta} ({cargando ? '…' : pedidos.filter(t.filtro).length})
             </button>
           ))}
         </div>

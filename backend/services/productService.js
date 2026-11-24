@@ -8,7 +8,7 @@ const esStockProductoValido = (v) =>
     (typeof v === "number" || typeof v === "string") && v !== "" && Number.isInteger(Number(v)) && Number(v) >= 1 && Number(v) <= 200;
 
 const esStockMinimoValido = (v) =>
-    (typeof v === "number" || typeof v === "string") && v !== "" && Number.isInteger(Number(v)) && Number(v) >= 0 && Number(v) <= 200;
+    (typeof v === "number" || typeof v === "string") && v !== "" && Number.isInteger(Number(v)) && Number(v) >= 1 && Number(v) <= 200;
 
 const textoOpcionalONulo = (v) => (v === undefined ? undefined : (v === null || String(v).trim() === "" ? null : String(v).trim()));
 
@@ -80,7 +80,7 @@ const obtenerProductosService = async (incluirInactivos = false, buscar = "") =>
     }
     return await Producto.findAll({
         where: { [Op.and]: condiciones },
-        include: [{ model: Categoria, attributes: ['nombre'] }],
+        include: [{ model: Categoria, as: 'Categoria', attributes: ['nombre'] }],
         order: [['id_producto', 'ASC']]
     });
 }; 
@@ -157,7 +157,7 @@ const obtenerProductosStockBajoService = async () => {
             stock: { [Op.lte]: sequelize.col('stock_minimo') },
             activo: true
         },
-        include: [{ model: Categoria, attributes: ['nombre'] }]
+        include: [{ model: Categoria, as: 'Categoria', attributes: ['nombre'] }]
     });
 };
 

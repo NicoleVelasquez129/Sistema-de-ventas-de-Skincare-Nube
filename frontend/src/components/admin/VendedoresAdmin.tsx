@@ -7,6 +7,7 @@ import {
   obtenerVentasDeVendedorAPI,
 } from '../../services/apiService';
 import type { VendedorAPI, VentaVendedorAPI } from '../../services/apiService';
+import { nombreValido, soloLetras } from '../../utils/validaciones';
 
 interface VendedoresAdminProps {
   onMostrarMensaje: (msg: string, esError: boolean) => void;
@@ -16,7 +17,10 @@ interface VendedoresAdminProps {
 const moneda = new Intl.NumberFormat('es-BO', { style: 'currency', currency: 'BOB' });
 const claseCampo =
   'w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-800 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30';
-const claseEtiqueta = 'mb-1 block text-xs font-semibold uppercase tracking-wide text-stone-500';
+const claseEtiqueta = 'mb-1 block text-xs font-semibold uppercase tracking-wide text-stone-600';
+const REGEX_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ErrorCampo: React.FC<{ texto?: string }> = ({ texto }) =>
+  texto ? <p role="alert" className="mt-1 text-xs text-rose-600">{texto}</p> : null;
 
 const NOMBRES_ESTADO: Record<string, string> = { pagado: 'Pagado', enviado: 'Enviado', entregado: 'Entregado' };
 
@@ -36,6 +40,9 @@ export const VendedoresAdmin: React.FC<VendedoresAdminProps> = ({ onMostrarMensa
   const [viendo, setViendo] = useState<VendedorAPI | null>(null);
   const [ventas, setVentas] = useState<VentaVendedorAPI[]>([]);
   const [cargandoVentas, setCargandoVentas] = useState(false);
+  const [desde, setDesde] = useState('');
+  const [hasta, setHasta] = useState('');
+  const [errores, setErrores] = useState<Record<string, string>>({});
 
   const cargar = async () => {
     onSetCargando(true);
@@ -56,15 +63,25 @@ export const VendedoresAdmin: React.FC<VendedoresAdminProps> = ({ onMostrarMensa
 
   const crear = async (e: React.FormEvent) => {
     e.preventDefault();
+    const nuevos: Record<string, string> = {};
+    if (!nombreValido(nombre)) nuevos.nombre = 'Escribe el nombre del vendedor usando solo letras.';
+    if (!REGEX_CORREO.test(correo.trim())) nuevos.correo = 'Ingresa un correo válido.';
+    if (contrasena.length < 8 || !/[A-Za-z]/.test(contrasena) || !/\d/.test(contrasena)) {
+      nuevos.contrasena = 'Mínimo 8 caracteres, con letras y números.';
+    }
+    setErrores(nuevos);
+    if (Object.keys(nuevos).length) return;
+
     onSetCargando(true);
     try {
-      const res = await crearVendedorAPI({ nombre, correo, contrasena });
+      const res = await crearVendedorAPI({ nombre: nombre.trim(), correo, contrasena });
       if (res.success) {
         onMostrarMensaje('Vendedor creado.', false);
         setNombre('');
         setCorreo('');
         setContrasena('');
         setCreando(false);
+        setErrores({});
         await cargar();
       } else {
         onMostrarMensaje(res.error || res.mensaje || 'No se pudo crear el vendedor.', true);
@@ -96,6 +113,8 @@ export const VendedoresAdmin: React.FC<VendedoresAdminProps> = ({ onMostrarMensa
   const verVentas = async (v: VendedorAPI) => {
     setViendo(v);
     setVentas([]);
+    setDesde('');
+    setHasta('');
     setCargandoVentas(true);
     try {
       setVentas(await obtenerVentasDeVendedorAPI(v.id_usuario));
@@ -107,7 +126,13 @@ export const VendedoresAdmin: React.FC<VendedoresAdminProps> = ({ onMostrarMensa
     }
   };
 
-  const confirmadas = ventas.filter(v => v.estado !== 'anulada' && v.estado_pedido !== 'pendiente');
+  const ventasVisibles = ventas.filter(v => {
+    const fecha = new Date(v.fecha);
+    if (desde && fecha < new Date(`${desde}T00:00:00`)) return false;
+    if (hasta && fecha > new Date(`${hasta}T23:59:59.999`)) return false;
+    return true;
+  });
+  const confirmadas = ventasVisibles.filter(v => v.estado !== 'anulada' && v.estado_pedido !== 'pendiente');
   const totalConfirmado = confirmadas.reduce((suma, v) => suma + Number(v.total), 0);
 
   return (
@@ -115,11 +140,11 @@ export const VendedoresAdmin: React.FC<VendedoresAdminProps> = ({ onMostrarMensa
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="font-serif text-2xl font-bold text-stone-900">Vendedores</h3>
-          <p className="text-sm text-stone-500">Crea vendedores, actívalos o desactívalos y revisa las ventas de cada uno.</p>
+          <p className="text-sm text-stone-600">Crea vendedores, actívalos o desactívalos y revisa las ventas de cada uno.</p>
         </div>
         <button
           type="button"
-          onClick={() => setCreando(v => !v)}
+          onClick={() => { setCreando(v => !v); setErrores({}); }}
           className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primaryFocus"
         >
           {creando ? 'Cancelar' : '+ Nuevo vendedor'}
@@ -127,14 +152,16 @@ export const VendedoresAdmin: React.FC<VendedoresAdminProps> = ({ onMostrarMensa
       </div>
 
       {creando && (
-        <form onSubmit={crear} className="mb-6 space-y-4 rounded-2xl border border-primary/30 bg-primary/10 p-5">
+        <form onSubmit={crear} noValidate autoComplete="off" className="mb-6 space-y-4 rounded-2xl border border-primary/30 bg-primary/10 p-5">
           <div>
             <label htmlFor="v-nombre" className={claseEtiqueta}>Nombre completo</label>
-            <input id="v-nombre" required maxLength={150} value={nombre} onChange={e => setNombre(e.target.value)} className={claseCampo} />
+            <input id="v-nombre" required maxLength={150} autoComplete="off" value={nombre} onChange={e => setNombre(soloLetras(e.target.value))} className={claseCampo} />
+            <ErrorCampo texto={errores.nombre} />
           </div>
           <div>
             <label htmlFor="v-correo" className={claseEtiqueta}>Correo</label>
-            <input id="v-correo" type="email" required maxLength={150} value={correo} onChange={e => setCorreo(e.target.value)} className={claseCampo} />
+            <input id="v-correo" type="email" required maxLength={150} autoComplete="off" value={correo} onChange={e => setCorreo(e.target.value)} className={claseCampo} />
+            <ErrorCampo texto={errores.correo} />
           </div>
           <CampoContrasena
             id="v-clave"
@@ -143,6 +170,7 @@ export const VendedoresAdmin: React.FC<VendedoresAdminProps> = ({ onMostrarMensa
             onCambio={setContrasena}
             autoComplete="new-password"
             ayuda="Mínimo 8 caracteres, con al menos una letra y un número."
+            error={errores.contrasena}
           />
           <button type="submit" className="rounded-xl bg-nube-oscuro px-5 py-2.5 text-sm font-semibold text-white hover:bg-primaryFocus">
             Crear vendedor
@@ -151,7 +179,7 @@ export const VendedoresAdmin: React.FC<VendedoresAdminProps> = ({ onMostrarMensa
       )}
 
       {cargado && vendedores.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-stone-300 bg-nube-crema px-6 py-10 text-center text-sm text-stone-500">
+        <p className="rounded-2xl border border-dashed border-stone-300 bg-nube-crema px-6 py-10 text-center text-sm text-stone-600">
           Todavía no hay vendedores.
         </p>
       ) : (
@@ -161,9 +189,9 @@ export const VendedoresAdmin: React.FC<VendedoresAdminProps> = ({ onMostrarMensa
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h4 className="truncate font-serif text-lg font-bold text-stone-900" title={v.nombre}>{v.nombre}</h4>
-                  <p className="truncate text-sm text-stone-500" title={v.correo}>{v.correo}</p>
+                  <p className="truncate text-sm text-stone-600" title={v.correo}>{v.correo}</p>
                 </div>
-                <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${v.activo ? 'bg-emerald-50 text-emerald-800' : 'bg-stone-100 text-stone-500'}`}>
+                <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${v.activo ? 'bg-emerald-50 text-emerald-800' : 'bg-stone-100 text-stone-600'}`}>
                   {v.activo ? 'Activo' : 'Inactivo'}
                 </span>
               </div>
@@ -203,15 +231,33 @@ export const VendedoresAdmin: React.FC<VendedoresAdminProps> = ({ onMostrarMensa
               <button type="button" onClick={() => setViendo(null)} aria-label="Cerrar" className="text-2xl leading-none">×</button>
             </div>
             <div className="flex-1 space-y-2 overflow-y-auto px-6 py-5">
-              {cargandoVentas && <p className="text-sm text-stone-500">Cargando…</p>}
-              {!cargandoVentas && ventas.length === 0 && <p className="text-sm text-stone-500">Este vendedor aún no tiene ventas.</p>}
-              {ventas.map(v => {
+              <div className="mb-3 flex flex-wrap items-end gap-3">
+                <div>
+                  <label htmlFor="f-desde" className={claseEtiqueta}>Desde</label>
+                  <input id="f-desde" type="date" value={desde} max={hasta || undefined} onChange={e => setDesde(e.target.value)} className={claseCampo} />
+                </div>
+                <div>
+                  <label htmlFor="f-hasta" className={claseEtiqueta}>Hasta</label>
+                  <input id="f-hasta" type="date" value={hasta} min={desde || undefined} onChange={e => setHasta(e.target.value)} className={claseCampo} />
+                </div>
+                {(desde || hasta) && (
+                  <button type="button" onClick={() => { setDesde(''); setHasta(''); }} className="rounded-lg px-3 py-2 text-sm font-semibold text-nube-oscuro hover:bg-primary/10">
+                    Limpiar
+                  </button>
+                )}
+              </div>
+              {cargandoVentas && <p className="text-sm text-stone-600">Cargando…</p>}
+              {!cargandoVentas && ventas.length === 0 && <p className="text-sm text-stone-600">Este vendedor aún no tiene ventas.</p>}
+              {!cargandoVentas && ventas.length > 0 && ventasVisibles.length === 0 && (
+                <p className="text-sm text-stone-600">No hay ventas en ese rango de fechas.</p>
+              )}
+              {ventasVisibles.map(v => {
                 const etiqueta = etiquetaVenta(v);
                 return (
                   <div key={v.id_venta} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-stone-200 px-4 py-3 text-sm">
                     <div>
                       <p className="font-semibold text-stone-800">Venta #{v.id_venta} · {v.Cliente?.nombre ?? 'Cliente'}</p>
-                      <p className="text-xs text-stone-500">{new Date(v.fecha).toLocaleString('es-BO')}</p>
+                      <p className="text-xs text-stone-600">{new Date(v.fecha).toLocaleString('es-BO')}</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${etiqueta.clase}`}>{etiqueta.texto}</span>
@@ -222,7 +268,11 @@ export const VendedoresAdmin: React.FC<VendedoresAdminProps> = ({ onMostrarMensa
               })}
             </div>
             <div className="border-t border-stone-200 bg-primary/10 px-6 py-4 text-sm font-semibold text-nube-oscuro">
-              Total con pago confirmado: {moneda.format(totalConfirmado)} ({confirmadas.length} {confirmadas.length === 1 ? 'venta' : 'ventas'})
+              {cargandoVentas ? (
+                <span role="status">Cargando ventas…</span>
+              ) : (
+                <>Total con pago confirmado: {moneda.format(totalConfirmado)} ({confirmadas.length} {confirmadas.length === 1 ? 'venta' : 'ventas'})</>
+              )}
             </div>
           </div>
         </div>

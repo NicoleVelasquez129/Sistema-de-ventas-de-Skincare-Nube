@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { guardarFacturaPDF, obtenerMisPedidosAPI, subirComprobanteAPI, urlImagen } from '../services/apiService';
+import { cancelarVentaAPI, guardarFacturaPDF, obtenerMisPedidosAPI, subirComprobanteAPI, urlImagen } from '../services/apiService';
 import type { PedidoCliente } from '../services/apiService';
 import { QrPagoFalso } from '../components/QrPagoFalso';
+import { CuentaAtrasCancelar } from '../components/CuentaAtrasCancelar';
+import { ConfirmacionDialog } from '../components/ConfirmacionDialog';
 
 const dinero = (valor: number | string) => `$${Number(valor).toFixed(2)}`;
 
@@ -24,6 +26,8 @@ export const MisPedidos: React.FC = () => {
   const [archivos, setArchivos] = useState<Record<number, File | null>>({});
   const [enviando, setEnviando] = useState<number | null>(null);
   const [descargando, setDescargando] = useState<number | null>(null);
+  const [cancelando, setCancelando] = useState<number | null>(null);
+  const [pedidoACancelar, setPedidoACancelar] = useState<number | null>(null);
 
   const cargar = useCallback(async () => {
     try {
@@ -39,6 +43,24 @@ export const MisPedidos: React.FC = () => {
   useEffect(() => {
     cargar();
   }, [cargar]);
+
+  const solicitarCancelacion = (idVenta: number) => setPedidoACancelar(idVenta);
+
+  const confirmarCancelacion = async () => {
+    if (pedidoACancelar === null) return;
+    const idVenta = pedidoACancelar;
+    setPedidoACancelar(null);
+    setCancelando(idVenta);
+    setError('');
+    try {
+      await cancelarVentaAPI(idVenta);
+      await cargar();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo cancelar el pedido.');
+    } finally {
+      setCancelando(null);
+    }
+  };
 
   const enviar = async (idVenta: number) => {
     const archivo = archivos[idVenta];
@@ -72,10 +94,10 @@ export const MisPedidos: React.FC = () => {
     <section className="mx-auto max-w-3xl px-4 py-8">
       <h1 className="mb-6 font-serif text-2xl font-bold text-stone-900">Mis pedidos</h1>
       {error && <p role="alert" className="mb-4 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
-      {cargando && <p className="text-sm text-stone-500">Cargando…</p>}
+      {cargando && <p className="text-sm text-stone-600">Cargando…</p>}
       {!cargando && pedidos.length === 0 && (
         <p className="text-sm text-stone-600">
-          Aún no tienes pedidos. <Link to="/" className="font-semibold underline">Ir al catálogo</Link>
+          Aún no tienes pedidos. <Link to="/" className="ml-1 inline-block rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primaryFocus">Ir al catálogo</Link>
         </p>
       )}
 
@@ -88,7 +110,7 @@ export const MisPedidos: React.FC = () => {
               <header className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <p className="font-semibold text-stone-900">Pedido #{pedido.id_venta}</p>
-                  <p className="text-xs text-stone-500">{new Date(pedido.fecha).toLocaleString('es-BO')}</p>
+                  <p className="text-xs text-stone-600">{new Date(pedido.fecha).toLocaleString('es-BO')}</p>
                 </div>
                 <span className={`rounded-full px-3 py-1 text-xs font-semibold ${estado.clase}`}>{estado.texto}</span>
               </header>
@@ -113,10 +135,15 @@ export const MisPedidos: React.FC = () => {
               )}
 
               {pedido.comprobante_pago && (
-                <a href={urlImagen(pedido.comprobante_pago)} target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm font-semibold text-stone-700 underline">
-                  Ver comprobante enviado
-                </a>
-              )}
+              <a
+                href={urlImagen(pedido.comprobante_pago)}
+                target="_blank"
+                rel="noreferrer"
+                className="mr-2 mt-4 inline-block rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primaryFocus"
+              >
+                Ver comprobante
+              </a>
+          )}
 
               {pedido.estado === 'registrada' && pedido.estado_pedido !== 'pendiente' && (
                 <button
@@ -134,12 +161,13 @@ export const MisPedidos: React.FC = () => {
                   <details>
                     <summary className="cursor-pointer text-sm font-semibold text-stone-700">Ver QR de pago</summary>
                     <div className="mt-3 flex justify-center"><QrPagoFalso semilla={pedido.id_venta} /></div>
-                    <p className="mt-2 text-center text-xs text-stone-500">
+                    <p className="mt-2 text-center text-xs text-stone-600">
                       QR ilustrativo; no procesa pagos. Paga por el canal indicado por la tienda.
                     </p>
                   </details>
                   <input
                     type="file"
+                    aria-label="Subir comprobante de pago (imagen o PDF)"
                     accept="image/jpeg,image/png,image/webp,application/pdf"
                     onChange={e => setArchivos(actual => ({ ...actual, [pedido.id_venta]: e.target.files?.[0] ?? null }))}
                     className="w-full text-sm"
@@ -152,12 +180,27 @@ export const MisPedidos: React.FC = () => {
                   >
                     {enviando === pedido.id_venta ? 'Enviando…' : pedido.comprobante_pago ? 'Enviar otro comprobante' : 'Enviar comprobante'}
                   </button>
+                  <CuentaAtrasCancelar
+                    creadaEn={pedido.createdAt || pedido.fecha}
+                    texto="Cancelar pedido"
+                    cancelando={cancelando === pedido.id_venta}
+                    onCancelar={() => solicitarCancelacion(pedido.id_venta)}
+                  />
                 </div>
               )}
             </article>
           );
         })}
       </div>
+      {pedidoACancelar !== null && (
+        <ConfirmacionDialog
+          titulo={`¿Cancelar el pedido #${pedidoACancelar}?`}
+          mensaje="Se anulará el pedido y los productos volverán al inventario."
+          textoConfirmar="Sí, cancelar pedido"
+          onConfirmar={confirmarCancelacion}
+          onCancelar={() => setPedidoACancelar(null)}
+        />
+      )}
     </section>
   );
 };

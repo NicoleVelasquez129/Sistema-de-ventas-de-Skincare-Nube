@@ -8,6 +8,7 @@ import {
   moverProductosAPI,
   obtenerCategoriasAPI,
 } from '../../services/apiService';
+import { categoriaValida, soloLetras } from '../../utils/validaciones';
 
 interface CategoriasAdminProps {
   onMostrarMensaje: (msg: string, esError: boolean) => void;
@@ -16,7 +17,7 @@ interface CategoriasAdminProps {
 
 const claseCampo =
   'w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-800 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30';
-const claseEtiquetaCampo = 'mb-1 block text-xs font-semibold uppercase tracking-wide text-stone-500';
+const claseEtiquetaCampo = 'mb-1 block text-xs font-semibold uppercase tracking-wide text-stone-600';
 
 /* ------------------------------------------------------------------ */
 /*  Formulario (crear / editar)                                        */
@@ -42,8 +43,8 @@ const FormularioCategoria: React.FC<FormularioCategoriaProps> = ({
 
   const guardar = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nombre.trim()) {
-      onMostrarMensaje('El nombre de la categoría es obligatorio.', true);
+    if (!categoriaValida(nombre)) {
+      onMostrarMensaje('El nombre de la categoría debe tener solo letras (entre 2 y 100 caracteres).', true);
       return;
     }
     setGuardando(true);
@@ -76,7 +77,7 @@ const FormularioCategoria: React.FC<FormularioCategoriaProps> = ({
       >
         <header className="flex items-center justify-between border-b border-stone-200 bg-nube-crema px-6 py-4">
           <h3 className="font-serif text-xl font-bold text-stone-900">{categoria ? 'Editar categoría' : 'Nueva categoría'}</h3>
-          <button type="button" onClick={onCerrar} aria-label="Cerrar" className="rounded-full p-2 text-stone-500 hover:bg-stone-200/70">
+          <button type="button" onClick={onCerrar} aria-label="Cerrar" className="rounded-full p-2 text-stone-600 hover:bg-stone-200/70">
             <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
             </svg>
@@ -90,7 +91,7 @@ const FormularioCategoria: React.FC<FormularioCategoriaProps> = ({
               id="c-nombre"
               autoFocus
               value={nombre}
-              onChange={e => setNombre(e.target.value)}
+              onChange={e => setNombre(soloLetras(e.target.value))}
               maxLength={100}
               placeholder="Ej. Sérums"
               className={claseCampo}
@@ -267,7 +268,7 @@ export const CategoriasAdmin: React.FC<CategoriasAdminProps> = ({ onMostrarMensa
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="font-serif text-2xl font-bold text-stone-900">Categorías</h3>
-          <p className="text-sm text-stone-500">Agrupan tus productos en el catálogo. Una categoría solo se puede eliminar si no tiene productos.</p>
+          <p className="text-sm text-stone-600">Agrupan tus productos en el catálogo. Una categoría solo se puede eliminar si no tiene productos.</p>
         </div>
         <button
           type="button"
@@ -284,7 +285,7 @@ export const CategoriasAdmin: React.FC<CategoriasAdminProps> = ({ onMostrarMensa
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 12V4h8l9 9-8 8-9-9zM7.5 8.5h.01" />
           </svg>
           <p className="font-serif text-lg font-bold text-stone-800">Todavía no hay categorías</p>
-          <p className="text-sm text-stone-500">Crea la primera para empezar a ordenar tu catálogo.</p>
+          <p className="text-sm text-stone-600">Crea la primera para empezar a ordenar tu catálogo.</p>
         </div>
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -307,7 +308,7 @@ export const CategoriasAdmin: React.FC<CategoriasAdminProps> = ({ onMostrarMensa
                   </div>
                 </div>
 
-                <p className={`mt-3 line-clamp-2 flex-1 text-sm ${cat.descripcion ? 'text-stone-600' : 'italic text-stone-400'}`}>
+                <p className={`mt-3 line-clamp-2 flex-1 text-sm ${cat.descripcion ? 'text-stone-600' : 'italic text-stone-600'}`}>
                   {cat.descripcion || 'Sin descripción'}
                 </p>
 
